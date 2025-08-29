@@ -1,4 +1,4 @@
-import { $, brl, readAnyText, parseBRL, pickVal, norm } from './common.js';
+import { $, brl, readAnyText, parseBRL, norm } from './common.js';
 
 export function initHistory(){
   document.getElementById('filePayslips')?.addEventListener('change', async (e)=>{
@@ -28,7 +28,6 @@ export function initHistory(){
           <td>${row.valorFGTS?brl(row.valorFGTS):'—'}</td>
           <td>${row.baseIRRF?brl(row.baseIRRF):'—'}</td>
         `;
-        // aviso visual se OCR veio fraco
         if(row.__raw && row.__raw.length < 80){
           tr.style.opacity = 0.85;
           tr.title = 'OCR com pouco texto — se possível, use PDF ou imagem de maior resolução';
@@ -50,64 +49,77 @@ export function initHistory(){
   });
 }
 
-/* ========= PARSER — Modelo SCI (baseado no seu holerite) ========= */
+/* ========= PARSER — Modelo SCI (robusto) ========= */
 function parsePayslipSCI(raw){
-  const T = norm(raw || '');
+  const T = (raw || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\t/g,' ')
+    .replace(/[ ]{2,}/g,' ')
+    .toUpperCase();
 
-  // captura o último valor monetário na linha/expressão
-  const money = (re) => {
-    const m = re.exec(T);
-    if (!m) return 0;
-    const raw = (m[1] || m[2] || '').replace(/\s/g,'');
-    const nums = raw.match(/(\d{1,3}(\.\d{3})*|\d+)(,\d{2})/g);
-    if (!nums || !nums.length) return 0;
-    return parseBRL(nums[nums.length-1]);
+  const pickEndMoney = (s) => {
+    if(!s) return 0;
+    const m = s.replace(/\s/g,'').match(/(\d{1,3}(\.\d{3})*|\d+),\d{2}/g);
+    if(!m || !m.length) return 0;
+    const v = m[m.length-1].replace(/\./g,'').replace(',','.');
+    return Number(v) || 0;
   };
 
-  // Cabeçalho
-  const mes = (T.match(/REFERENTE AO MES[:\-]?\s*([A-ZÇÃÕ]+\/\d{4})/) || [,''])[1];
+  const moneyRE = (re) => {
+    const m = re.exec(T);
+    return m ? pickEndMoney(m[0]) : 0;
+  };
 
-  // Totais e líquido
-  const totMatch = T.match(/TOTAIS[^\d]{0,10}((\d[\d\.,]*))[^\d]{0,10}((\d[\d\.,]*))/);
-  const totProventos = totMatch ? parseBRL(totMatch[1]) : 0;
-  const totDescontos = totMatch ? parseBRL(totMatch[3]) : 0;
-  const liquido = money(/SAL[AI]RIO\s*LIQUIDO[^\d]{0,15}R?\$?\s*((\d[\d\.,]*))/);
+  // cabeçalho (mês/ano)
+  let mes = '';
+  const mMes = T.match(/REFERENTE AO MES[:\-]?\s*([A-ZÇÃÕ]+\/\d{4})/);
+  if(mMes) mes = mMes[1];
 
-  // Rodapé (bases)
-  const salarioBase = money(/SAL[AI]RIO\s*BASE[^\d]{0,20}((\d[\d\.,]*))/);
-  const baseINSS    = money(/BASE\s*INSS[^\d]{0,20}((\d[\d\.,]*))/);
-  const baseFGTS    = money(/BASE\s*FGTS[^\d]{0,20}((\d[\d\.,]*))/);
-  const valorFGTS   = money(/VALOR\s*FGTS[^\d]{0,20}((\d[\d\.,]*))/);
-  const baseIRRF    = money(/BASE\s*IRRF[^\d]{0,20}((\d[\d\.,]*))/);
+  // Totais
+  let totProventos = 0, totDescontos = 0;
+  const tot = T.match(/TOTAIS[^\d]{0,20}((\d[\d\.,]*))[^\d]{0,20}((\d[\d\.,]*))/);
+  if(tot){
+    totProventos = pickEndMoney(tot[1]) || 0;
+    totDescontos = pickEndMoney(tot[3]) || 0;
+  }
 
-  // Proventos (variáveis)
-  const insal       = money(/(ADICIONAL\s+INSALUBRIDADE|INSALUBRIDADE)[^\d]{0,80}((\d[\d\.,]*))/);
-  const he50        = money(/HORAS?\s*EXTRAS?\s*50%[^\d]{0,80}((\d[\d\.,]*))/);
-  const dsrHe       = money(/DSR\s*HORAS?\s*EXTRAS?[^\d]{0,80}((\d[\d\.,]*))/);
-  const variaveis   = (insal||0) + (he50||0) + (dsrHe||0);
+  // Líquido e bases
+  const liquido = moneyRE(/SAL[AI]RIO\s*LIQUIDO[^\d]{0,30}R?\$?\s*((\d[\d\.,]*))/);
+  const salarioBase = moneyRE(/SAL[AI]RIO\s*BASE[^\d]{0,40}((\d[\d\.,]*))/);
+  const baseINSS    = moneyRE(/BASE\s*INSS[^\d]{0,40}((\d[\d\.,]*))/);
+  const baseFGTS    = moneyRE(/BASE\s*FGTS[^\d]{0,40}((\d[\d\.,]*))/);
+  const valorFGTS   = moneyRE(/VALOR\s*FGTS[^\d]{0,40}((\d[\d\.,]*))/);
+  const baseIRRF    = moneyRE(/BASE\s*IRRF[^\d]{0,40}((\d[\d\.,]*))/);
+
+  // Proventos variáveis
+  const insal       = moneyRE(/(ADICIONAL\s+INSALUBRIDADE|INSALUBRIDADE)[^\d]{0,120}((\d[\d\.,]*))/);
+  const he50        = moneyRE(/HORAS?\s*EXTRAS?\s*50%(?:[^0-9]{0,120})?((\d[\d\.,]*))/);
+  const dsrHE       = moneyRE(/DSR\s*HORAS?\s*EXTRAS?(?:[^0-9]{0,120})?((\d[\d\.,]*))/);
+  const variaveis   = (insal||0) + (he50||0) + (dsrHE||0);
 
   // Descontos
-  const inss        = money(/(?:^|\s)INSS(?:\s*\d+%|\s*TOTAL)?[^\d]{0,40}((\d[\d\.,]*))/);
+  const inss        = moneyRE(/(?:^|\s)INSS(?:\s*\d+%|\s*TOTAL)?[^\d]{0,120}((\d[\d\.,]*))/);
+  const taxaNegocial = moneyRE(/TAXA\s*NEGOCIAL(?:[^0-9]{0,120})?((\d[\d\.,]*))/);
+  const faltaDia     = moneyRE(/FALTAS?\s*NAO\s*JUSTIFICADAS?\s*DIAS?(?:[^0-9]{0,120})?((\d[\d\.,]*))/);
+  const faltaHora    = moneyRE(/FALTAS?\s*NAO\s*JUSTIFICADAS?\s*HORAS?(?:[^0-9]{0,120})?((\d[\d\.,]*))/);
+  const dsrFaltasDia = moneyRE(/DSR\s*FALTAS?\s*DIA(?:[^0-9]{0,120})?((\d[\d\.,]*))/);
+  const vale         = moneyRE(/\b(VALE|ADIANT\.?|ADIANTAMENTO)\b(?:[^0-9]{0,120})?((\d[\d\.,]*))/);
 
-  // IRRF — ignora "Base IRRF" e pega o valor do desconto, se houver
+  // IRRF (ignorar Base IRRF)
   let ir = 0;
-  const irRe = /IRRF[^\d]{0,40}((\d[\d\.,]*))/g;
+  const irRe = /IRRF[^\d]{0,60}((\d[\d\.,]*))/g;
   let m; 
   while ((m = irRe.exec(T)) !== null) {
-    const before = T.slice(Math.max(0, m.index - 12), m.index);
-    if (!/BASE\s*IRRF/.test(before)) {
-      const raw = (m[1] || '').replace(/\s/g,'');
-      const nums = raw.match(/(\d{1,3}(\.\d{3})*|\d+)(,\d{2})/g);
-      if (nums?.length) { ir = parseBRL(nums[nums.length-1]); break; }
-    }
+    const antes = T.slice(Math.max(0, m.index - 20), m.index);
+    if (!/BASE\s*IRRF/.test(antes)) { ir = pickEndMoney(m[0]); break; }
   }
 
   return {
     mes,
     salarioBase, baseINSS, baseFGTS, valorFGTS, baseIRRF,
-    insal, variaveis,
-    totProventos, totDescontos, liquido,
+    insal, variaveis, totProventos, totDescontos, liquido,
     inss, ir,
-    __raw: T.slice(0,120) // para diagnóstico visual quando OCR vier curto
+    taxaNegocial, faltaDia, faltaHora, dsrFaltasDia, vale,
+    __raw: T.slice(0,160)
   };
 }
