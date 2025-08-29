@@ -10,7 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 
-<!-- pdf.js via CDN (funciona no GitHub Pages) -->
+<!-- Bibliotecas (CDN) -->
+<!-- pdf.js para ler PDFs -->
 <script defer src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -20,6 +21,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
+<!-- OCR para imagens escaneadas (JPG/PNG) -->
+<script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<!-- DOCX -> texto -->
+<script defer src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<!-- XLSX/CSV -> texto -->
+<script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
 :root{
@@ -87,9 +94,9 @@ tfoot td{font-weight:800;font-size:15px}
   <header>
     <div>
       <h1>Calculadora de Rescisão CLT — Quitação</h1>
-      <div class="sub">Upload de PDFs (TRCT/Termo de Quitação e contracheques) direto no navegador</div>
+      <div class="sub">Upload de TRCT/Termo e contracheques em PDF, imagem (OCR), DOCX, XLSX/CSV ou TXT</div>
     </div>
-    <div class="badge">Status: <span id="statusPdf">carregando pdf.js…</span></div>
+    <div class="badge">pdf.js: <span id="statusPdf">…</span> • OCR: <span id="statusOcr">…</span></div>
   </header>
 
   <!-- Abas -->
@@ -194,8 +201,9 @@ tfoot td{font-weight:800;font-size:15px}
       <div class="row">
         <div class="col-12">
           <div class="drop">
-            <strong>Carregar TRCT/Termo de Quitação (PDF)</strong><br>
-            <input id="fileTRCT" type="file" accept="application/pdf" />
+            <strong>Carregar TRCT/Termo (PDF, JPG/PNG, DOCX, XLSX/CSV, TXT)</strong><br>
+            <input id="fileTRCT" type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx,.xls,.csv,.txt" />
           </div>
         </div>
       </div>
@@ -238,12 +246,13 @@ tfoot td{font-weight:800;font-size:15px}
   <!-- TAB 3: Histórico -->
   <div id="tab-hist" class="grid" style="display:none">
     <div class="card">
-      <h2>4) Histórico — Contracheques (PDFs)</h2>
+      <h2>4) Histórico — Contracheques</h2>
       <div class="row">
         <div class="col-12">
           <div class="drop">
-            <strong>Carregar contracheques (vários PDFs)</strong><br>
-            <input id="filePayslips" type="file" accept="application/pdf" multiple />
+            <strong>Carregar contracheques (PDF, JPG/PNG, DOCX, XLSX/CSV, TXT)</strong><br>
+            <input id="filePayslips" type="file" multiple
+              accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx,.xls,.csv,.txt" />
           </div>
         </div>
       </div>
@@ -457,7 +466,7 @@ function atualizarComparacao(calcBruto=null, calcDesc=null, calcFgts=null, calcL
 }
 function comparar(){ atualizarComparacao(); }
 
-/* ===== PDF leitura (regex corrigidas) ===== */
+/* ===== Leitura de arquivos ===== */
 async function readPdfText(file){
   if(!window.pdfjsLib) throw new Error('pdf.js não carregado');
   const buf = await file.arrayBuffer();
@@ -471,6 +480,45 @@ async function readPdfText(file){
   }
   return full;
 }
+async function readAnyText(file){
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  // PDF
+  if (file.type === 'application/pdf' || ext === 'pdf') {
+    return await readPdfText(file);
+  }
+  // Imagens -> OCR (PT)
+  if (file.type.startsWith('image/') || ['jpg','jpeg','png'].includes(ext)) {
+    const ab = await file.arrayBuffer();
+    const blob = new Blob([ab]);
+    const { data: { text } } = await Tesseract.recognize(blob, 'por');
+    return text || '';
+  }
+  // DOCX
+  if (ext === 'docx') {
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    return result.value || '';
+  }
+  // XLSX / XLS
+  if (ext === 'xlsx' || ext === 'xls') {
+    const data = new Uint8Array(await file.arrayBuffer());
+    const wb = XLSX.read(data, { type: 'array' });
+    let txt = '';
+    wb.SheetNames.forEach(name => {
+      const ws = wb.Sheets[name];
+      txt += "\n" + XLSX.utils.sheet_to_csv(ws, { FS: ';', RS: '\n' });
+    });
+    return txt;
+  }
+  // CSV / TXT
+  if (ext === 'csv' || ext === 'txt') {
+    return await file.text();
+  }
+  // fallback
+  return await file.text();
+}
+
+/* ===== Parsing TRCT/holerite ===== */
 function pickVal(re, text){
   const m = re.exec(text);
   if(!m) return null;
@@ -500,7 +548,6 @@ function autoFillTRCT(text){
   setVal('#trct_outdesc',pickVal(/(CONTRIBUI[ÇC][ÕO]ES?|OUTROS\s*DESCONTOS?).{0,40}?((\d[\d\.,]*))/, T));
 }
 
-/* ===== Payslips ===== */
 function parsePayslip(text){
   const T = text.replace(/\s{2,}/g,' ').toUpperCase();
   const get = re => {
@@ -549,10 +596,10 @@ function bindUI(){
   $('#fileTRCT').addEventListener('change', async (e)=>{
     const f = e.target.files?.[0]; if(!f) return;
     try{
-      const text = await readPdfText(f);
+      const text = await readAnyText(f);
       autoFillTRCT(text);
       comparar();
-    }catch(err){ alert('Erro ao ler PDF: '+err.message); }
+    }catch(err){ alert('Erro ao ler arquivo: '+err.message); }
   });
 
   // Contracheques
@@ -562,7 +609,7 @@ function bindUI(){
     let somaVar = 0, nVar = 0;
     for(const f of files){
       try{
-        const text = await readPdfText(f);
+        const text = await readAnyText(f);
         const row = parsePayslip(text);
         const tr = document.createElement('tr');
         tr.innerHTML = `<td>${f.name}</td><td>${row.mes||'—'}</td><td>${row.salBase?brl(row.salBase):'—'}</td><td>${row.variaveis?brl(row.variaveis):'—'}</td><td>${row.insal?brl(row.insal):'—'}</td><td>${row.inss?brl(row.inss):'—'}</td><td>${row.ir?brl(row.ir):'—'}</td>`;
@@ -570,7 +617,7 @@ function bindUI(){
         if(row.variaveis>0){ somaVar += row.variaveis; nVar++; }
       }catch(err){
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${f.name}</td><td colspan="6">Erro ao ler PDF: ${err.message}</td>`;
+        tr.innerHTML = `<td>${f.name}</td><td colspan="6">Erro ao ler arquivo: ${err.message}</td>`;
         tbody.appendChild(tr);
       }
     }
@@ -581,8 +628,10 @@ function bindUI(){
 }
 
 document.addEventListener('DOMContentLoaded', ()=>{
-  // status pdf.js
+  // status libs
   $('#statusPdf').textContent = window.pdfjsLib ? 'ok' : 'falhou';
+  $('#statusOcr').textContent = window.Tesseract ? 'ok' : 'falhou';
+
   bindUI();
   calc(); // mostra valores iniciais
 });
