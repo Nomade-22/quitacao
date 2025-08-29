@@ -1,0 +1,76 @@
+<div class="card">
+  <h2>1) Dados do contrato</h2>
+  <div class="row">
+    <div class="col-3"><label>Salário base mensal</label><input id="salario" type="text" inputmode="decimal" value="3000,00"></div>
+    <div class="col-3"><label>Média de variáveis (HE/adicionais)</label><input id="mediaVar" type="text" inputmode="decimal" value="300,00"></div>
+    <div class="col-3"><label>Data de admissão</label><input id="admissao" type="date"></div>
+    <div class="col-3"><label>Data de desligamento</label><input id="desligamento" type="date"></div>
+  </div>
+  <div class="row">
+    <div class="col-4">
+      <label>Tipo de rescisão</label>
+      <select id="tipo">
+        <option value="semjusta">Sem justa causa (empregador)</option>
+        <option value="acordo">Acordo entre as partes (art. 484-A, CLT)</option>
+        <option value="pedido">Pedido de demissão</option>
+        <option value="justa">Dispensa por justa causa</option>
+        <option value="prazo">Término de contrato a prazo</option>
+        <option value="prazo_empregado">Prazo — rescisão antecipada (art. 480)</option>
+        <option value="indireta">Rescisão indireta</option>
+      </select>
+    </div>
+    <div class="col-4">
+      <label>Aviso prévio</label>
+      <select id="avisoTipo">
+        <option value="indenizado">Indenizado</option>
+        <option value="trabalhado">Trabalhado</option>
+        <option value="dispensado">Dispensado / Não se aplica</option>
+      </select>
+    </div>
+    <div class="col-4">
+      <label>Dias trabalhados no mês da rescisão</label>
+      <input id="diasSaldo" type="number" min="0" max="31" value="10">
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-4">
+      <label>Saldo FGTS para base da multa (R$)</label>
+      <input id="fgtsBase" type="text" inputmode="decimal" value="0,00">
+    </div>
+    <div class="col-4"><label>Início do último período aquisitivo de férias (opcional)</label><input id="aquisitivoInicio" type="date"></div>
+    <div class="col-4"><label>Férias vencidas a indenizar (dias)</label><input id="feriasVencidasDias" type="number" min="0" max="60" value="0"></div>
+  </div>
+  <div class="row">
+    <div class="col-4">
+      <label>Descontar aviso não cumprido (pedido de demissão)?</label>
+      <select id="descontoAvisoEmpregado"><option value="nao" selected>Não</option><option value="sim">Sim</option></select>
+    </div>
+    <div class="col-4"><label>Indenização art. 480 (R$)</label><input id="art480" type="text" inputmode="decimal" value="0,00"></div>
+    <div class="col-4"><label>Outros descontos manuais (R$)</label><input id="outrosDesc" type="text" inputmode="decimal" value="0,00"></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>2) Itens calculados</h2>
+  <div class="row">
+    <div class="col-3"><div class="pill">Tempo de casa: <span id="tempoCasa">—</span></div></div>
+    <div class="col-3"><div class="pill">Aviso (dias): <span id="avisoDias">0</span></div></div>
+    <div class="col-3"><div class="pill">13º avos: <span id="avos13">0/12</span></div></div>
+    <div class="col-3"><div class="pill">Férias avos: <span id="avosFerias">0/12</span></div></div>
+  </div>
+  <table>
+    <thead><tr><th>Verba</th><th>Base</th><th>Quantidade</th><th>Valor (R$)</th></tr></thead>
+    <tbody id="tbody"></tbody>
+    <tfoot>
+      <tr><td colspan="3">Total Bruto</td><td id="totBruto">R$ 0,00</td></tr>
+      <tr><td colspan="3">Descontos</td><td id="totDesc">R$ 0,00</td></tr>
+      <tr><td colspan="3">Multa FGTS</td><td id="totFgts">R$ 0,00</td></tr>
+      <tr><td colspan="3">Total a Receber</td><td id="totLiquido">R$ 0,00</td></tr>
+    </tfoot>
+  </table>
+  <div class="actions">
+    <button class="btn" id="btnCSV">Exportar (CSV)</button>
+    <button class="btn" id="btnPDF">Imprimir / Salvar PDF</button>
+    <button class="btn" id="btnZerar">Zerar campos</button>
+  </div>
+</div>
