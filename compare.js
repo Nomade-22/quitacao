@@ -1,21 +1,24 @@
 import { $, parseBRL, brl, readAnyText, pickVal } from './common.js';
 
 export function initCompare(){
-  document.getElementById('fileTRCT')?.addEventListener('change', async (e)=>{
-    const f = e.target.files?.[0]; if(!f) return;
-    try{
-      const text = await readAnyText(f);
-      autoFillTRCT(text);
-      atualizarComparacao();
-    }catch(err){ alert('Erro ao ler arquivo: '+err.message); }
-  });
+  const inp = document.getElementById('fileTRCT');
+  if (inp) {
+    inp.addEventListener('change', async (e)=>{
+      const f = e.target.files?.[0]; if(!f) return;
+      try{
+        const text = await readAnyText(f);
+        autoFillTRCT(text);
+        atualizarComparacao();
+      }catch(err){ alert('Erro ao ler arquivo: '+err.message); }
+    });
+  }
 
   [
     '#trct_saldo','#trct_adic','#trct_13','#trct_ferias','#trct_terco','#trct_outras',
     '#trct_inss','#trct_ir','#trct_faltas','#trct_480','#trct_outdesc'
   ].forEach(sel=>{
     const el = document.querySelector(sel);
-    el?.addEventListener('input', atualizarComparacao);
+    if (el) el.addEventListener('input', atualizarComparacao);
   });
 }
 
