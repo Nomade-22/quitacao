@@ -1,267 +1,313 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Calculadora de Rescisão CLT — (GitHub Pages)</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Calculadora de Rescisão CLT — Quitação (GitHub Pages)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- pdf.js via CDN (funciona no GitHub Pages) -->
-  <script defer src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-  <script>
-    // Define o worker do pdf.js (CDN)
-    document.addEventListener('DOMContentLoaded', () => {
-      if (window['pdfjsLib']) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
-      }
-    });
-  </script>
+<!-- pdf.js via CDN -->
+<script defer src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    if (window['pdfjsLib']) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+      document.documentElement.setAttribute('data-pdfjs', 'ok');
+    } else {
+      document.documentElement.setAttribute('data-pdfjs', 'fail');
+    }
+  } catch (e) {
+    document.documentElement.setAttribute('data-pdfjs', 'fail');
+    console.error(e);
+  }
+});
+</script>
 
-  <style>
-    :root{ --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb; --brand:#22d3ee;
-      --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444; --card:#0b1223; --line:#1f2937; }
-    *{box-sizing:border-box} html,body{height:100%}
-    body{margin:0;font-family:Inter,system-ui,Segoe UI,Arial,Helvetica,sans-serif;
-      background: radial-gradient(1200px 800px at 20% -10%, #1e293b 0%, #0b1223 50%, var(--bg) 100%);
-      color:var(--text);}
-    .wrap{max-width:1220px;margin:18px auto;padding:16px}
-    header{display:flex;align-items:center;justify-content:space-between;gap:16px;
-      padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:rgba(17,24,39,.6);backdrop-filter: blur(6px);}
-    header h1{font-size:clamp(18px,2.5vw,22px);margin:0;font-weight:700;letter-spacing:.2px}
-    .sub{font-size:12px;color:var(--muted);margin-top:2px}
-    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
-    .tab{padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:#0a1021;color:#cbd5e1;cursor:pointer}
-    .tab.active{outline:2px solid #22d3ee66}
-    .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:10px 0 16px}
-    .kpi{background:linear-gradient(180deg, #0d162b, #0a1021);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
-    .kpi h3{margin:0 0 6px 0;font-size:12px;color:var(--muted);font-weight:600}
-    .kpi .val{font-size:22px;font-weight:800;letter-spacing:.2px}
-    .kpi.ok .val{color:var(--ok)} .kpi.bad .val{color:var(--bad)}
-    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
-    .card{grid-column:span 12;background:linear-gradient(180deg,#0d162b,#0a1021);border:1px solid var(--line);border-radius:16px;padding:16px}
-    .card h2{margin:0 0 12px 0;font-size:16px}
-    .row{display:grid;grid-template-columns:repeat(12,1fr);gap:10px;margin-bottom:10px}
-    label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
-    input,select,button,textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--line);
-      background:#0b1020;color:#fff;font-size:14px;outline:none;}
-    input:focus,select:focus,textarea:focus{border-color:#334155;box-shadow:0 0 0 4px rgba(34,211,238,.08)}
-    .row > div{grid-column:span 12}
-    @media(min-width:680px){ .row > .col-6{grid-column:span 6} .row > .col-4{grid-column:span 4} .row > .col-3{grid-column:span 3} .row > .col-2{grid-column:span 2} .row > .col-8{grid-column:span 8} }
-    table{width:100%;border-collapse:collapse;margin-top:8px}
-    th,td{padding:10px;border-bottom:1px dashed #1f2a44;text-align:left;font-size:13px}
-    th{color:#a8b3cf;font-weight:600} tfoot td{font-weight:800;font-size:15px}
-    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-    .btn{cursor:pointer;border:1px solid var(--line);background:#0f152a}
-    .btn:hover{filter:brightness(1.1)}
-    .badge{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#0a1021;padding:8px 10px;border-radius:999px;font-size:12px;color:#cbd5e1}
-    .hint{font-size:12px;color:#9aa7c7}
-    .pill{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--line);background:#0a1021;color:#cbd5e1;display:inline-block}
-    .flex{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .cmp-ok{color:var(--ok);font-weight:700}
-    .cmp-diff{color:var(--bad);font-weight:700}
-    .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    @media(max-width:900px){.two{grid-template-columns:1fr}}
-    .drop{border:2px dashed #2a3a5a;border-radius:14px;padding:14px;text-align:center;background:#0b1020;}
-  </style>
+<style>
+:root{ --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb; --brand:#22d3ee;
+  --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444; --card:#0b1223; --line:#1f2937; }
+*{box-sizing:border-box} html,body{height:100%}
+body{margin:0;font-family:Inter,system-ui,Segoe UI,Arial,Helvetica,sans-serif;
+  background: radial-gradient(1200px 800px at 20% -10%, #1e293b 0%, #0b1223 50%, var(--bg) 100%);
+  color:var(--text);}
+.wrap{max-width:1220px;margin:18px auto;padding:16px}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:rgba(17,24,39,.6);backdrop-filter: blur(6px);}
+header h1{font-size:clamp(18px,2.5vw,22px);margin:0;font-weight:700;letter-spacing:.2px}
+.sub{font-size:12px;color:var(--muted);margin-top:2px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.tab{padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:#0a1021;color:#cbd5e1;cursor:pointer}
+.tab.active{outline:2px solid #22d3ee66}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:10px 0 16px}
+.kpi{background:linear-gradient(180deg, #0d162b, #0a1021);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.kpi h3{margin:0 0 6px 0;font-size:12px;color:var(--muted);font-weight:600}
+.kpi .val{font-size:22px;font-weight:800;letter-spacing:.2px}
+.kpi.ok .val{color:var(--ok)} .kpi.bad .val{color:var(--bad)}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.card{grid-column:span 12;background:linear-gradient(180deg,#0d162b,#0a1021);border:1px solid var(--line);border-radius:16px;padding:16px}
+.card h2{margin:0 0 12px 0;font-size:16px}
+.row{display:grid;grid-template-columns:repeat(12,1fr);gap:10px;margin-bottom:10px}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+input,select,button,textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--line);
+  background:#0b1020;color:#fff;font-size:14px;outline:none;}
+input:focus,select:focus,textarea:focus{border-color:#334155;box-shadow:0 0 0 4px rgba(34,211,238,.08)}
+.row > div{grid-column:span 12}
+@media(min-width:680px){ .row > .col-6{grid-column:span 6} .row > .col-4{grid-column:span 4} .row > .col-3{grid-column:span 3} .row > .col-2{grid-column:span 2} .row > .col-8{grid-column:span 8} }
+table{width:100%;border-collapse:collapse;margin-top:8px}
+th,td{padding:10px;border-bottom:1px dashed #1f2a44;text-align:left;font-size:13px}
+th{color:#a8b3cf;font-weight:600} tfoot td{font-weight:800;font-size:15px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{cursor:pointer;border:1px solid var(--line);background:#0f152a}
+.btn:hover{filter:brightness(1.1)}
+.badge{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#0a1021;padding:8px 10px;border-radius:999px;font-size:12px;color:#cbd5e1}
+.hint{font-size:12px;color:#9aa7c7}
+.pill{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--line);background:#0a1021;color:#cbd5e1;display:inline-block}
+.flex{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.cmp-ok{color:var(--ok);font-weight:700}
+.cmp-diff{color:var(--bad);font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:900px){.two{grid-template-columns:1fr}}
+.drop{border:2px dashed #2a3a5a;border-radius:14px;padding:14px;text-align:center;background:#0b1020;}
+.status{
+  margin:10px 0; display:flex; gap:10px; flex-wrap:wrap;
+}
+.tag{font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid var(--line); background:#0a1021; color:#cbd5e1}
+.tag.ok{border-color:#14532d; background:#052e1a; color:#b7f7c6}
+.tag.fail{border-color:#7f1d1d; background:#2f0b0b; color:#fecaca}
+#errorBox{display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:9999; align-items:center; justify-content:center;}
+#errorBox .inner{background:#1b253b; border:1px solid #3b4b6d; border-radius:16px; max-width:780px; padding:18px}
+#errorBox pre{white-space:pre-wrap; font-size:12px; color:#ffe2e2; background:#0b111f; padding:10px; border-radius:8px; max-height:40vh; overflow:auto}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div>
-        <h1>Calculadora de Rescisão CLT — GitHub Pages</h1>
-        <div class="sub">Upload de PDFs (<strong>TRCT/Termo de Quitação</strong> e <strong>contracheques</strong>) direto no navegador.</div>
-      </div>
-      <div class="flex">
-        <span id="badgeTipo" class="badge">Tipo: <strong id="tipoLabel">Sem justa causa</strong></span>
-        <span class="badge">Aviso: <strong id="avisoLabel">Indenizado</strong></span>
-      </div>
-    </header>
+<div id="errorBox"><div class="inner">
+  <h3>Ocorreu um erro de JavaScript</h3>
+  <p>Envie essa mensagem pra mim que eu corrijo:</p>
+  <pre id="errorText"></pre>
+  <button class="btn" onclick="document.getElementById('errorBox').style.display='none'">Fechar</button>
+</div></div>
 
-    <div class="tabs">
-      <button class="tab active" data-tab="calc">Cálculo</button>
-      <button class="tab" data-tab="cmp">Comparação TRCT</button>
-      <button class="tab" data-tab="hist">Histórico (Contracheques)</button>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Calculadora de Rescisão CLT — Quitação</h1>
+      <div class="sub">Upload de PDFs (TRCT e contracheques) direto no navegador • GitHub Pages</div>
     </div>
+    <div class="flex">
+      <span id="badgeTipo" class="badge">Tipo: <strong id="tipoLabel">Sem justa causa</strong></span>
+      <span class="badge">Aviso: <strong id="avisoLabel">Indenizado</strong></span>
+    </div>
+  </header>
 
-    <section class="kpis">
-      <div class="kpi"><h3>Total Bruto (cálculo)</h3><div class="val" id="kpiBruto">R$ 0,00</div></div>
-      <div class="kpi"><h3>Descontos (cálculo)</h3><div class="val" id="kpiDesc">R$ 0,00</div></div>
-      <div class="kpi"><h3>Multa FGTS (cálculo)</h3><div class="val" id="kpiFgts">R$ 0,00</div></div>
-      <div class="kpi ok" id="kpiLiquidoBox"><h3>Total a Receber (cálculo)</h3><div class="val" id="kpiLiquido">R$ 0,00</div></div>
-    </section>
+  <div class="status">
+    <span class="tag" id="tagApp">App: carregando…</span>
+    <span class="tag" id="tagPdf">pdf.js: verificando…</span>
+  </div>
 
-    <div id="tab-calc" class="grid">
-      <div class="card">
-        <h2>1) Dados do contrato</h2>
-        <div class="row">
-          <div class="col-3"><label>Salário base mensal</label><input id="salario" type="text" inputmode="decimal" placeholder="Ex.: 2763,07"></div>
-          <div class="col-3"><label>Média de variáveis (HE/adicionais)</label><input id="mediaVar" type="text" inputmode="decimal" placeholder="Ex.: 0,00"></div>
-          <div class="col-3"><label>Data de admissão</label><input id="admissao" type="date"></div>
-          <div class="col-3"><label>Data de desligamento</label><input id="desligamento" type="date"></div>
+  <div class="tabs">
+    <button class="tab active" data-tab="calc">Cálculo</button>
+    <button class="tab" data-tab="cmp">Comparação TRCT</button>
+    <button class="tab" data-tab="hist">Histórico (Contracheques)</button>
+  </div>
+
+  <section class="kpis">
+    <div class="kpi"><h3>Total Bruto (cálculo)</h3><div class="val" id="kpiBruto">R$ 0,00</div></div>
+    <div class="kpi"><h3>Descontos (cálculo)</h3><div class="val" id="kpiDesc">R$ 0,00</div></div>
+    <div class="kpi"><h3>Multa FGTS (cálculo)</h3><div class="val" id="kpiFgts">R$ 0,00</div></div>
+    <div class="kpi ok" id="kpiLiquidoBox"><h3>Total a Receber (cálculo)</h3><div class="val" id="kpiLiquido">R$ 0,00</div></div>
+  </section>
+
+  <div id="tab-calc" class="grid">
+    <div class="card">
+      <h2>1) Dados do contrato</h2>
+      <div class="row">
+        <div class="col-3"><label>Salário base mensal</label><input id="salario" type="text" inputmode="decimal" value="3000,00"></div>
+        <div class="col-3"><label>Média de variáveis (HE/adicionais)</label><input id="mediaVar" type="text" inputmode="decimal" value="300,00"></div>
+        <div class="col-3"><label>Data de admissão</label><input id="admissao" type="date"></div>
+        <div class="col-3"><label>Data de desligamento</label><input id="desligamento" type="date"></div>
+      </div>
+      <div class="row">
+        <div class="col-4">
+          <label>Tipo de rescisão</label>
+          <select id="tipo">
+            <option value="semjusta" selected>Sem justa causa (empregador)</option>
+            <option value="acordo">Acordo entre as partes (art. 484-A, CLT)</option>
+            <option value="pedido">Pedido de demissão</option>
+            <option value="justa">Dispensa por justa causa</option>
+            <option value="prazo">Término de contrato a prazo</option>
+            <option value="prazo_empregado">Prazo — rescisão antecipada (art. 480)</option>
+            <option value="indireta">Rescisão indireta</option>
+          </select>
         </div>
-        <div class="row">
-          <div class="col-4">
-            <label>Tipo de rescisão</label>
-            <select id="tipo">
-              <option value="semjusta">Sem justa causa (empregador)</option>
-              <option value="acordo">Acordo entre as partes (art. 484-A, CLT)</option>
-              <option value="pedido">Pedido de demissão</option>
-              <option value="justa">Dispensa por justa causa</option>
-              <option value="prazo">Término de contrato a prazo</option>
-              <option value="prazo_empregado">Prazo determinado — rescisão antecipada pelo empregado (art. 480)</option>
-              <option value="indireta">Rescisão indireta</option>
-            </select>
-          </div>
-          <div class="col-4">
-            <label>Aviso prévio</label>
-            <select id="avisoTipo">
-              <option value="indenizado">Indenizado</option>
-              <option value="trabalhado">Trabalhado</option>
-              <option value="dispensado">Dispensado / Não se aplica</option>
-            </select>
-          </div>
-          <div class="col-4">
-            <label>Dias trabalhados no mês da rescisão (saldo de salário)</label>
-            <input id="diasSaldo" type="number" min="0" max="31" placeholder="Ex.: 5">
-          </div>
+        <div class="col-4">
+          <label>Aviso prévio</label>
+          <select id="avisoTipo">
+            <option value="indenizado" selected>Indenizado</option>
+            <option value="trabalhado">Trabalhado</option>
+            <option value="dispensado">Dispensado / Não se aplica</option>
+          </select>
         </div>
-        <div class="row">
-          <div class="col-4">
-            <label>Saldo FGTS para base da multa (R$)</label>
-            <input id="fgtsBase" type="text" inputmode="decimal" placeholder="Ex.: 0,00">
-            <div class="hint">Informe o saldo da conta FGTS para calcular a multa (40% / 20% / 0%).</div>
-          </div>
-          <div class="col-4"><label>Início do último período aquisitivo de férias (opcional)</label><input id="aquisitivoInicio" type="date"></div>
-          <div class="col-4"><label>Férias vencidas a indenizar (dias)</label><input id="feriasVencidasDias" type="number" min="0" max="60" placeholder="0 ou 30"></div>
-        </div>
-        <div class="row">
-          <div class="col-4">
-            <label>Descontar aviso não cumprido pelo empregado?</label>
-            <select id="descontoAvisoEmpregado"><option value="nao">Não</option><option value="sim">Sim (pedido de demissão)</option></select>
-          </div>
-          <div class="col-4">
-            <label>Indenização art. 480 (R$)</label>
-            <input id="art480" type="text" inputmode="decimal" placeholder="Ex.: 227,70">
-            <div class="hint">Até metade dos salários a que teria direito até o fim do contrato. Informe se aplicável.</div>
-          </div>
-          <div class="col-4"><label>Outros descontos manuais</label><input id="outrosDesc" type="text" inputmode="decimal" placeholder="Total de descontos diversos"></div>
+        <div class="col-4">
+          <label>Dias trabalhados no mês da rescisão (saldo de salário)</label>
+          <input id="diasSaldo" type="number" min="0" max="31" value="10">
         </div>
       </div>
-
-      <div class="card">
-        <h2>2) Itens calculados</h2>
-        <div class="row">
-          <div class="col-3"><div class="pill">Tempo de casa: <span id="tempoCasa">—</span></div></div>
-          <div class="col-3"><div class="pill">Aviso (dias): <span id="avisoDias">0</span></div></div>
-          <div class="col-3"><div class="pill">13º avos: <span id="avos13">0/12</span></div></div>
-          <div class="col-3"><div class="pill">Férias avos: <span id="avosFerias">0/12</span></div></div>
+      <div class="row">
+        <div class="col-4">
+          <label>Saldo FGTS para base da multa (R$)</label>
+          <input id="fgtsBase" type="text" inputmode="decimal" value="0,00">
+          <div class="hint">Informe o saldo da conta FGTS para calcular a multa (40% / 20% / 0%).</div>
         </div>
-        <table id="tabela">
-          <thead><tr><th>Verba</th><th>Base</th><th>Quantidade</th><th>Valor (R$)</th></tr></thead>
-          <tbody id="tbody"></tbody>
-          <tfoot>
-            <tr><td colspan="3">Total Bruto</td><td id="totBruto">R$ 0,00</td></tr>
-            <tr><td colspan="3">Descontos</td><td id="totDesc">R$ 0,00</td></tr>
-            <tr><td colspan="3">Multa FGTS</td><td id="totFgts">R$ 0,00</td></tr>
-            <tr><td colspan="3">Total a Receber</td><td id="totLiquido">R$ 0,00</td></tr>
-          </tfoot>
-        </table>
-        <div class="actions">
-          <button class="btn" id="btnCSV">Exportar (CSV)</button>
-          <button class="btn" id="btnPDF">Imprimir / Salvar PDF</button>
-          <button class="btn" id="btnZerar">Zerar campos</button>
+        <div class="col-4"><label>Início do último período aquisitivo de férias (opcional)</label><input id="aquisitivoInicio" type="date"></div>
+        <div class="col-4"><label>Férias vencidas a indenizar (dias)</label><input id="feriasVencidasDias" type="number" min="0" max="60" value="0"></div>
+      </div>
+      <div class="row">
+        <div class="col-4">
+          <label>Descontar aviso não cumprido pelo empregado?</label>
+          <select id="descontoAvisoEmpregado"><option value="nao" selected>Não</option><option value="sim">Sim (pedido de demissão)</option></select>
         </div>
+        <div class="col-4">
+          <label>Indenização art. 480 (R$)</label>
+          <input id="art480" type="text" inputmode="decimal" value="0,00">
+        </div>
+        <div class="col-4"><label>Outros descontos manuais</label><input id="outrosDesc" type="text" inputmode="decimal" value="0,00"></div>
       </div>
     </div>
 
-    <div id="tab-cmp" class="grid" style="display:none">
-      <div class="card">
-        <h2>3) Comparação com TRCT da Contabilidade</h2>
-        <div class="row">
-          <div class="col-12">
-            <div class="drop">
-              <strong>Carregar TRCT/Termo de Quitação (PDF)</strong><br>
-              <input id="fileTRCT" type="file" accept="application/pdf" />
-            </div>
-          </div>
-        </div>
-        <div class="two">
-          <div>
-            <h3 style="margin:0 0 8px 0">Valores do TRCT (extraídos do PDF ou digite manualmente)</h3>
-            <div class="row">
-              <div class="col-6"><label>Saldo de salário (R$)</label><input id="trct_saldo" type="text" inputmode="decimal"></div>
-              <div class="col-6"><label>Adicionais/Insalubridade/DSR (R$)</label><input id="trct_adic" type="text" inputmode="decimal"></div>
-              <div class="col-6"><label>13º proporcional (R$)</label><input id="trct_13" type="text" inputmode="decimal"></div>
-              <div class="col-6"><label>Férias proporcionais (R$)</label><input id="trct_ferias" type="text" inputmode="decimal"></div>
-              <div class="col-6"><label>1/3 férias (R$)</label><input id="trct_terco" type="text" inputmode="decimal"></div>
-              <div class="col-6"><label>Outras verbas (R$)</label><input id="trct_outras" type="text" inputmode="decimal"></div>
-            </div>
-            <div class="row">
-              <div class="col-6"><label>Descontos: INSS total (R$)</label><input id="trct_inss" type="text" inputmode="decimal"></div>
-              <div class="col-6"><label>Descontos: IRRF total (R$)</label><input id="trct_ir" type="text" inputmode="decimal"></div>
-              <div class="col-6"><label>Descontos: Faltas + DSR faltas (R$)</label><input id="trct_faltas" type="text" inputmode="decimal"></div>
-              <div class="col-6"><label>Desconto art. 480 (R$)</label><input id="trct_480" type="text" inputmode="decimal"></div>
-              <div class="col-6"><label>Contribuições/Outros descontos (R$)</label><input id="trct_outdesc" type="text" inputmode="decimal"></div>
-            </div>
-          </div>
-          <div>
-            <h3 style="margin:0 0 8px 0">Resultados</h3>
-            <table>
-              <thead><tr><th>Item</th><th>Contabilidade</th><th>Calculadora</th><th>Diferença</th></tr></thead>
-              <tbody id="cmpBody"></tbody>
-              <tfoot>
-                <tr><td>Total Bruto</td><td id="cmpBrutoC">—</td><td id="cmpBrutoM">—</td><td id="cmpBrutoD">—</td></tr>
-                <tr><td>Descontos</td><td id="cmpDescC">—</td><td id="cmpDescM">—</td><td id="cmpDescD">—</td></tr>
-                <tr><td>Multa FGTS</td><td id="cmpFgtsC">—</td><td id="cmpFgtsM">—</td><td id="cmpFgtsD">—</td></tr>
-                <tr><td><strong>Total Líquido</strong></td><td id="cmpLiqC">—</td><td id="cmpLiqM">—</td><td id="cmpLiqD">—</td></tr>
-              </tfoot>
-            </table>
-            <div class="hint" style="margin-top:8px">Dica: após extrair, revise os números capturados e ajuste se necessário.</div>
+    <div class="card">
+      <h2>2) Itens calculados</h2>
+      <div class="row">
+        <div class="col-3"><div class="pill">Tempo de casa: <span id="tempoCasa">—</span></div></div>
+        <div class="col-3"><div class="pill">Aviso (dias): <span id="avisoDias">0</span></div></div>
+        <div class="col-3"><div class="pill">13º avos: <span id="avos13">0/12</span></div></div>
+        <div class="col-3"><div class="pill">Férias avos: <span id="avosFerias">0/12</span></div></div>
+      </div>
+      <table id="tabela">
+        <thead><tr><th>Verba</th><th>Base</th><th>Quantidade</th><th>Valor (R$)</th></tr></thead>
+        <tbody id="tbody"></tbody>
+        <tfoot>
+          <tr><td colspan="3">Total Bruto</td><td id="totBruto">R$ 0,00</td></tr>
+          <tr><td colspan="3">Descontos</td><td id="totDesc">R$ 0,00</td></tr>
+          <tr><td colspan="3">Multa FGTS</td><td id="totFgts">R$ 0,00</td></tr>
+          <tr><td colspan="3">Total a Receber</td><td id="totLiquido">R$ 0,00</td></tr>
+        </tfoot>
+      </table>
+      <div class="actions">
+        <button class="btn" id="btnCSV">Exportar (CSV)</button>
+        <button class="btn" id="btnPDF">Imprimir / Salvar PDF</button>
+        <button class="btn" id="btnZerar">Zerar campos</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-cmp" class="grid" style="display:none">
+    <div class="card">
+      <h2>3) Comparação com TRCT da Contabilidade</h2>
+      <div class="row">
+        <div class="col-12">
+          <div class="drop"><strong>Carregar TRCT/Termo de Quitação (PDF)</strong><br>
+            <input id="fileTRCT" type="file" accept="application/pdf"/>
           </div>
         </div>
       </div>
-    </div>
-
-    <div id="tab-hist" class="grid" style="display:none">
-      <div class="card">
-        <h2>4) Histórico — Contracheques (PDFs)</h2>
-        <div class="row">
-          <div class="col-12">
-            <div class="drop">
-              <strong>Carregar contracheques (vários PDFs)</strong><br>
-              <input id="filePayslips" type="file" accept="application/pdf" multiple />
-              <div class="hint">Serão extraídas rubricas como horas extras, adicionais, insalubridade, descontos, etc., para calcular médias.</div>
-            </div>
+      <div class="two">
+        <div>
+          <h3 style="margin:0 0 8px 0">Valores do TRCT (auto ou manual)</h3>
+          <div class="row">
+            <div class="col-6"><label>Saldo de salário (R$)</label><input id="trct_saldo" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>Adicionais/Insalubridade/DSR (R$)</label><input id="trct_adic" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>13º proporcional (R$)</label><input id="trct_13" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>Férias proporcionais (R$)</label><input id="trct_ferias" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>1/3 férias (R$)</label><input id="trct_terco" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>Outras verbas (R$)</label><input id="trct_outras" type="text" inputmode="decimal"></div>
+          </div>
+          <div class="row">
+            <div class="col-6"><label>Descontos: INSS total (R$)</label><input id="trct_inss" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>Descontos: IRRF total (R$)</label><input id="trct_ir" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>Descontos: Faltas + DSR faltas (R$)</label><input id="trct_faltas" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>Desconto art. 480 (R$)</label><input id="trct_480" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>Contribuições/Outros descontos (R$)</label><input id="trct_outdesc" type="text" inputmode="decimal"></div>
           </div>
         </div>
-        <div class="row">
-          <div class="col-12">
-            <table id="histTable">
-              <thead><tr><th>Arquivo</th><th>Mês</th><th>Salário Base</th><th>HE/Variáveis</th><th>Insalubridade</th><th>INSS</th><th>IRRF</th></tr></thead>
-              <tbody></tbody>
-              <tfoot>
-                <tr><td colspan="3"><strong>Média Variáveis (HE+Adicionais)</strong></td><td id="mediaVars">R$ 0,00</td><td colspan="3"></td></tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid">
-      <div class="card">
-        <h2>Notas rápidas</h2>
-        <div class="hint">
-          • Funciona no GitHub Pages usando pdf.js via CDN; se o PDF for escaneado (imagem), peça a versão com OCR (Tesseract.js) que também roda no navegador.<br>
-          • Detectores (regex) prontos para rótulos comuns — se o seu TRCT usa outros títulos, me diga para eu ajustar.
+        <div>
+          <h3 style="margin:0 0 8px 0">Resultados</h3>
+          <table>
+            <thead><tr><th>Item</th><th>Contabilidade</th><th>Calculadora</th><th>Diferença</th></tr></thead>
+            <tbody id="cmpBody"></tbody>
+            <tfoot>
+              <tr><td>Total Bruto</td><td id="cmpBrutoC">—</td><td id="cmpBrutoM">—</td><td id="cmpBrutoD">—</td></tr>
+              <tr><td>Descontos</td><td id="cmpDescC">—</td><td id="cmpDescM">—</td><td id="cmpDescD">—</td></tr>
+              <tr><td>Multa FGTS</td><td id="cmpFgtsC">—</td><td id="cmpFgtsM">—</td><td id="cmpFgtsD">—</td></tr>
+              <tr><td><strong>Total Líquido</strong></td><td id="cmpLiqC">—</td><td id="cmpLiqM">—</td><td id="cmpLiqD">—</td></tr>
+            </tfoot>
+          </table>
+          <div class="hint" style="margin-top:8px">Se algo não preencher, ajuste manualmente e me diga o rótulo do PDF para eu treinar a leitura.</div>
         </div>
       </div>
     </div>
   </div>
 
+  <div id="tab-hist" class="grid" style="display:none">
+    <div class="card">
+      <h2>4) Histórico — Contracheques (PDFs)</h2>
+      <div class="row">
+        <div class="col-12">
+          <div class="drop">
+            <strong>Carregar contracheques (vários PDFs)</strong><br>
+            <input id="filePayslips" type="file" accept="application/pdf" multiple />
+            <div class="hint">Extrai valores como HE, insalubridade, INSS e IR para montar a média de variáveis.</div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-12">
+          <table id="histTable">
+            <thead><tr><th>Arquivo</th><th>Mês</th><th>Salário Base</th><th>HE/Variáveis</th><th>Insalubridade</th><th>INSS</th><th>IRRF</th></tr></thead>
+            <tbody></tbody>
+            <tfoot>
+              <tr><td colspan="3"><strong>Média Variáveis (HE+Adicionais)</strong></td><td id="mediaVars">R$ 0,00</td><td colspan="3"></td></tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Notas rápidas</h2>
+      <div class="hint">
+        • Se aparecer uma tarja vermelha “pdf.js: falhou”, é porque a rede bloqueou o CDN. Dê um refresh (<kbd>Ctrl/Cmd+Shift+R</kbd>) ou me avise para eu embutir o pdf.js direto.<br>
+        • PDFs escaneados (imagem) precisam de OCR (posso ativar Tesseract.js).
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
+// --------- Guard rails & diagnostics ---------
+(function(){
+  const tag = id => document.getElementById(id);
+  const ok = (id, msg) => { const t=tag(id); t.textContent=msg; t.classList.add('ok'); t.classList.remove('fail'); };
+  const fail = (id, msg) => { const t=tag(id); t.textContent=msg; t.classList.add('fail'); t.classList.remove('ok'); };
+  window.addEventListener('error', (e)=>{
+    const box=document.getElementById('errorBox');
+    document.getElementById('errorText').textContent = (e.error && e.error.stack) ? e.error.stack : (e.message||String(e));
+    box.style.display='flex';
+  });
+  window.addEventListener('DOMContentLoaded', ()=>{
+    ok('tagApp','App: carregado ✔');
+    const pdfOk = document.documentElement.getAttribute('data-pdfjs')==='ok';
+    if(pdfOk) ok('tagPdf','pdf.js: ok ✔'); else fail('tagPdf','pdf.js: falhou ✖');
+  });
+})();
+</script>
+
+<script>
+// ===== Util =====
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const brl = n => (isFinite(n) ? n : 0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -303,6 +349,7 @@ function projectedEndDate(des, avisoDias, avisoTipo){
   return des;
 }
 
+// ===== Core calc =====
 function calc(){
   const salario = parseBRL($('#salario').value);
   const mediaVar = parseBRL($('#mediaVar').value);
@@ -409,7 +456,7 @@ function calc(){
   const totalDesc = linhas.filter(l=>l.valor<0).reduce((s,l)=>s+l.valor,0) * -1;
   const totalLiquido = totalBruto - totalDesc + multaFGTS;
 
-  $('#tempoCasa').textContent = adm && des ? (anos + ' ano(s) completos') : '—';
+  $('#tempoCasa').textContent = (adm && des) ? (diffYearsFloor(adm, des) + ' ano(s) completos') : '—';
   const tbody = $('#tbody'); tbody.innerHTML = '';
   for(const l of linhas){
     const tr = document.createElement('tr');
@@ -462,30 +509,34 @@ function zerar(){
   $('#tipo').value = 'semjusta';
   $('#avisoTipo').value = 'indenizado';
   $('#descontoAvisoEmpregado').value = 'nao';
-  ['trct_saldo','trct_adic','trct_13','trct_ferias','trct_terco','trct_outras','trct_inss','trct_ir','trct_faltas','trct_480','trct_outdesc']
-    .forEach(id=>{ const el = document.getElementById(id); if(el) el.value=''; });
+  ['trct_saldo','trct_adic','trct_13','trct_ferias','trct_terco','trct_outras','trct_inss','trct_ir','trct_faltas','trct_480','trct_outdesc'].forEach(id=>{ const el = document.getElementById(id); if(el) el.value=''; });
   $('#histTable tbody').innerHTML='';
   $('#mediaVars').textContent = brl(0);
   calc(); comparar();
 }
 
-['salario','mediaVar','admissao','desligamento','tipo','avisoTipo','diasSaldo','fgtsBase','aquisitivoInicio','feriasVencidasDias','descontoAvisoEmpregado','art480','outrosDesc']
-  .forEach(id=>{ document.getElementById(id).addEventListener('input', calc); document.getElementById(id).addEventListener('change', calc); });
-document.getElementById('btnCSV').addEventListener('click', exportCSV);
-document.getElementById('btnPDF').addEventListener('click', printPDF);
-document.getElementById('btnZerar').addEventListener('click', zerar);
+function bindAll(){
+  ['salario','mediaVar','admissao','desligamento','tipo','avisoTipo','diasSaldo','fgtsBase','aquisitivoInicio','feriasVencidasDias','descontoAvisoEmpregado','art480','outrosDesc']
+    .forEach(id=>{
+      const el = document.getElementById(id);
+      if(el){ el.addEventListener('input', calc); el.addEventListener('change', calc); }
+    });
+  const btnCSV = document.getElementById('btnCSV'); if(btnCSV) btnCSV.addEventListener('click', exportCSV);
+  const btnPDF = document.getElementById('btnPDF'); if(btnPDF) btnPDF.addEventListener('click', printPDF);
+  const btnZ = document.getElementById('btnZerar'); if(btnZ) btnZ.addEventListener('click', zerar);
 
-$$('.tab').forEach(b=>b.addEventListener('click', e=>{
-  $$('.tab').forEach(x=>x.classList.remove('active'));
-  e.currentTarget.classList.add('active');
-  const on = e.currentTarget.dataset.tab;
-  $('#tab-calc').style.display = (on==='calc') ? '' : 'none';
-  $('#tab-cmp').style.display = (on==='cmp') ? '' : 'none';
-  $('#tab-hist').style.display = (on==='hist') ? '' : 'none';
-}));
+  $$('.tab').forEach(b=>b.addEventListener('click', e=>{
+    $$('.tab').forEach(x=>x.classList.remove('active'));
+    e.currentTarget.classList.add('active');
+    const on = e.currentTarget.dataset.tab;
+    $('#tab-calc').style.display = (on==='calc') ? '' : 'none';
+    $('#tab-cmp').style.display  = (on==='cmp')  ? '' : 'none';
+    $('#tab-hist').style.display = (on==='hist') ? '' : 'none';
+  }));
 
-['trct_saldo','trct_adic','trct_13','trct_ferias','trct_terco','trct_outras','trct_inss','trct_ir','trct_faltas','trct_480','trct_outdesc']
-  .forEach(id=>{ const el = document.getElementById(id); el.addEventListener('input', comparar); el.addEventListener('change', comparar); });
+  ['trct_saldo','trct_adic','trct_13','trct_ferias','trct_terco','trct_outras','trct_inss','trct_ir','trct_faltas','trct_480','trct_outdesc']
+    .forEach(id=>{ const el = document.getElementById(id); if(el){ el.addEventListener('input', comparar); el.addEventListener('change', comparar); } });
+}
 
 function somaC(...vals){ return vals.reduce((s,v)=>s+parseBRL($(v).value||0),0); }
 function comparar(){ atualizarComparacao(); }
@@ -501,7 +552,7 @@ function atualizarComparacao(calcBruto=null, calcDesc=null, calcFgts=null, calcL
   if(calcFgts===null){  calcFgts  = parseBRL($('#totFgts').textContent); }
   if(calcLiq===null){   calcLiq   = parseBRL($('#totLiquido').textContent); }
 
-  const set = (id, val) => { $(id).textContent = brl(val); };
+  const set = (id, val) => { const el=$(id); if(el) el.textContent = brl(val); };
   set('#cmpBrutoC', cBruto); set('#cmpBrutoM', calcBruto); set('#cmpBrutoD', cBruto - calcBruto);
   set('#cmpDescC',  cDesc);  set('#cmpDescM',  calcDesc);  set('#cmpDescD',  cDesc - calcDesc);
   set('#cmpFgtsC',  cFgts);  set('#cmpFgtsM',  calcFgts);  set('#cmpFgtsD',  cFgts - calcFgts);
@@ -510,12 +561,13 @@ function atualizarComparacao(calcBruto=null, calcDesc=null, calcFgts=null, calcL
   [['#cmpBrutoD', cBruto - calcBruto], ['#cmpDescD', cDesc - calcDesc], ['#cmpFgtsD', cFgts - calcFgts], ['#cmpLiqD', cLiq - calcLiq]]
     .forEach(([id, diff])=>{
       const el = $(id);
+      if(!el) return;
       el.classList.toggle('cmp-ok', Math.abs(diff) < 0.01);
       el.classList.toggle('cmp-diff', Math.abs(diff) >= 0.01);
     });
 }
 
-// ====== PDF PARSE (via pdf.js CDN) ======
+// ====== PDF (via pdf.js CDN) ======
 async function readPdfText(file){
   if(!window['pdfjsLib']) throw new Error('pdf.js não carregado');
   const buf = await file.arrayBuffer();
@@ -530,16 +582,6 @@ async function readPdfText(file){
   return full;
 }
 
-$('#fileTRCT').addEventListener('change', async (e)=>{
-  const f = e.target.files?.[0];
-  if(!f) return;
-  try{
-    const text = await readPdfText(f);
-    autoFillTRCT(text);
-    comparar();
-  }catch(err){ alert('Erro ao ler PDF: '+err.message); }
-});
-
 function matchVal(regex, text){
   const m = regex.exec(text);
   if(!m) return null;
@@ -549,11 +591,10 @@ function matchVal(regex, text){
   const pick = num[num.length-1];
   return pick;
 }
-function setVal(id, v){ if(v!==null){ $(id).value = v; } }
+function setVal(id, v){ const el=$(id); if(v!==null && el){ el.value = v; el.dispatchEvent(new Event('input')); } }
 
 function autoFillTRCT(text){
   const T = text.replace(/\\s{2,}/g,' ').toUpperCase();
-
   setVal('#trct_saldo',   matchVal(/SALDO\\s*DE\\s*SAL[ÁA]RIO.*?((\\d[\\d\\.\\,]*))/i, T));
   setVal('#trct_adic',    matchVal(/(INSALUBRIDADE|ADICIONAIS?|DSR).{0,40}?((\\d[\\d\\.\\,]*))/i, T));
   setVal('#trct_13',      matchVal(/13[ºO]\\s*(SAL[ÁA]RIO|PROPORCIONAL).{0,40}?((\\d[\\d\\.\\,]*))/i, T));
@@ -561,71 +602,88 @@ function autoFillTRCT(text){
   setVal('#trct_terco',   matchVal(/1\\/3\\s*(CONSTITUCIONAL|F[ÉE]RIAS).{0,40}?((\\d[\\d\\.\\,]*))/i, T));
   setVal('#trct_outras',  matchVal(/OUTRAS\\s*(VERBAS|PARCELAS).{0,40}?((\\d[\\d\\.\\,]*))/i, T));
 
-  setVal('#trct_inss',    matchVal(/INSS(\\s*TOTAL)?\\.?{0,20}?((\\d[\\d\\.\\,]*))/i, T));
+  setVal('#trct_inss',    matchVal(/INSS(\\s*TOTAL)?\\.?\\s{0,20}?((\\d[\\d\\.\\,]*))/i, T));
   setVal('#trct_ir',      matchVal(/IRRF?.{0,20}?((\\d[\\d\\.\\,]*))/i, T));
   setVal('#trct_faltas',  matchVal(/FALTAS?.{0,40}?((\\d[\\d\\.\\,]*))/i, T));
   setVal('#trct_480',     matchVal(/ART\\.?\\s*480.{0,40}?((\\d[\\d\\.\\,]*))/i, T));
   setVal('#trct_outdesc', matchVal(/(CONTRIBUI[ÇC][ÕO]ES?|OUTROS\\s*DESCONTOS?).{0,40}?((\\d[\\d\\.\\,]*))/i, T));
 }
 
-// Payslips batch
-$('#filePayslips').addEventListener('change', async (e)=>{
-  const files = [...(e.target.files||[])];
-  if(files.length===0) return;
-  const tbody = $('#histTable tbody'); tbody.innerHTML='';
-  let somaVar = 0, nVar = 0;
+// Events
+document.addEventListener('DOMContentLoaded', ()=>{
+  bindAll();
+  calc(); // run once with prefilled values
 
-  for(const f of files){
-    try{
-      const text = await readPdfText(f);
-      const row = parsePayslip(text);
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${f.name}</td>
-        <td>${row.mes||'—'}</td>
-        <td>${row.salBase?brl(row.salBase):'—'}</td>
-        <td>${row.variaveis?brl(row.variaveis):'—'}</td>
-        <td>${row.insal?brl(row.insal):'—'}</td>
-        <td>${row.inss?brl(row.inss):'—'}</td>
-        <td>${row.ir?brl(row.ir):'—'}</td>`;
-      tbody.appendChild(tr);
-
-      if(row.variaveis>0){ somaVar += row.variaveis; nVar++; }
-    }catch(err){
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${f.name}</td><td colspan="6">Erro ao ler PDF: ${err.message}</td>`;
-      tbody.appendChild(tr);
-    }
+  const trct = document.getElementById('fileTRCT');
+  if(trct){
+    trct.addEventListener('change', async (e)=>{
+      const f = e.target.files?.[0];
+      if(!f) return;
+      try{
+        const text = await readPdfText(f);
+        autoFillTRCT(text);
+        comparar();
+      }catch(err){
+        alert('Erro ao ler PDF: '+err.message);
+        console.error(err);
+      }
+    });
   }
-  const media = nVar>0 ? somaVar/nVar : 0;
-  $('#mediaVars').textContent = brl(media);
-  if(media>0){ $('#mediaVar').value = media.toFixed(2).replace('.',','); calc(); }
+
+  const pays = document.getElementById('filePayslips');
+  if(pays){
+    pays.addEventListener('change', async (e)=>{
+      const files = [...(e.target.files||[])];
+      if(files.length===0) return;
+      const tbody = document.querySelector('#histTable tbody'); tbody.innerHTML='';
+      let somaVar = 0, nVar = 0;
+      for(const f of files){
+        try{
+          const text = await readPdfText(f);
+          const row = parsePayslip(text);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${f.name}</td>
+            <td>${row.mes||'—'}</td>
+            <td>${row.salBase?brl(row.salBase):'—'}</td>
+            <td>${row.variaveis?brl(row.variaveis):'—'}</td>
+            <td>${row.insal?brl(row.insal):'—'}</td>
+            <td>${row.inss?brl(row.inss):'—'}</td>
+            <td>${row.ir?brl(row.ir):'—'}</td>`;
+          tbody.appendChild(tr);
+          if(row.variaveis>0){ somaVar += row.variaveis; nVar++; }
+        }catch(err){
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${f.name}</td><td colspan="6">Erro ao ler PDF: ${err.message}</td>`;
+          tbody.appendChild(tr);
+        }
+      }
+      const media = nVar>0 ? somaVar/nVar : 0;
+      document.getElementById('mediaVars').textContent = brl(media);
+      if(media>0){ document.getElementById('mediaVar').value = media.toFixed(2).replace('.',','); calc(); }
+    });
+  }
 });
 
 function parsePayslip(text){
-  const T = text.replace(/\\s{2,}/g,' ').toUpperCase();
+  const T = text.replace(/\s{2,}/g,' ').toUpperCase();
   const pickNum = r => {
     const m = r.exec(T);
     if(!m) return 0;
-    const raw = (m[1]||m[2]||'').replace(/\\s/g,'');
-    const num = raw.match(/(\\d{1,3}(\\.\\d{3})*|\\d+)(,\\d{2})?/g);
+    const raw = (m[1]||m[2]||'').replace(/\s/g,'');
+    const num = raw.match(/(\d{1,3}(\.\d{3})*|\d+)(,\d{2})?/g);
     if(!num) return 0;
     const p = num[num.length-1];
     return parseBRL(p);
   };
-  const mes = (T.match(/(COMPET[ÊE]NCIA|M[EÊ]S)\\s*[:\\-]?\\s*([A-Z]{3,9}\\/\\d{4})/) || [,'', ''])[2];
-
-  const salBase = pickNum(/SAL[ÁA]RIO\\s*BASE.{0,40}?((\\d[\\d\\.\\,]*))/i);
-  const he      = pickNum(/HORAS?\\s*EXTRAS?.{0,40}?((\\d[\\d\\.\\,]*))/i);
-  const insal   = pickNum(/INSALUBRIDADE.{0,40}?((\\d[\\d\\.\\,]*))/i);
+  const mes = (T.match(/(COMPET[ÊE]NCIA|M[EÊ]S)\s*[:\-]?\s*([A-Z]{3,9}\/\d{4})/) || [,'', ''])[2];
+  const salBase = pickNum(/SAL[ÁA]RIO\s*BASE.{0,40}?((\d[\d\.\,]*))/i);
+  const he      = pickNum(/HORAS?\s*EXTRAS?.{0,40}?((\d[\d\.\,]*))/i);
+  const insal   = pickNum(/INSALUBRIDADE.{0,40}?((\d[\d\.\,]*))/i);
   const variaveis = he + insal;
-  const inss    = pickNum(/INSS.{0,20}?((\\d[\\d\\.\\,]*))/i);
-  const ir      = pickNum(/IRRF?.{0,20}?((\\d[\\d\\.\\,]*))/i);
-
+  const inss    = pickNum(/INSS.{0,20}?((\d[\d\.\,]*))/i);
+  const ir      = pickNum(/IRRF?.{0,20}?((\d[\d\.\,]*))/i);
   return {mes, salBase, variaveis, insal, inss, ir};
 }
-
-// init
-calc(); comparar();
 </script>
 </body>
 </html>
