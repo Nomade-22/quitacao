@@ -1,52 +1,55 @@
-import { $, brl, readAnyText, parseBRL, norm } from './common.js';
+import { $, brl, readAnyText, parseBRL } from './common.js';
 
 export function initHistory(){
-  document.getElementById('filePayslips')?.addEventListener('change', async (e)=>{
-    const files = [...(e.target.files||[])]; if(files.length===0) return;
-    const tbody = document.querySelector('#histTable tbody'); tbody.innerHTML='';
-    let somaVar = 0, nVar = 0;
+  const inp = document.getElementById('filePayslips');
+  if (inp) {
+    inp.addEventListener('change', async (e)=>{
+      const files = [...(e.target.files||[])]; if(files.length===0) return;
+      const tbody = document.querySelector('#histTable tbody'); tbody.innerHTML='';
+      let somaVar = 0, nVar = 0;
 
-    for(const f of files){
-      try{
-        const text = await readAnyText(f);
-        const row  = parsePayslipSCI(text);
+      for(const f of files){
+        try{
+          const text = await readAnyText(f);
+          const row  = parsePayslipSCI(text);
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${f.name}</td>
-          <td>${row.mes||'—'}</td>
-          <td>${row.salarioBase?brl(row.salarioBase):'—'}</td>
-          <td>${row.totProventos?brl(row.totProventos):'—'}</td>
-          <td>${row.totDescontos?brl(row.totDescontos):'—'}</td>
-          <td>${row.liquido?brl(row.liquido):'—'}</td>
-          <td>${row.variaveis?brl(row.variaveis):'—'}</td>
-          <td>${row.insal?brl(row.insal):'—'}</td>
-          <td>${row.inss?brl(row.inss):'—'}</td>
-          <td>${row.ir?brl(row.ir):'—'}</td>
-          <td>${row.baseINSS?brl(row.baseINSS):'—'}</td>
-          <td>${row.baseFGTS?brl(row.baseFGTS):'—'}</td>
-          <td>${row.valorFGTS?brl(row.valorFGTS):'—'}</td>
-          <td>${row.baseIRRF?brl(row.baseIRRF):'—'}</td>
-        `;
-        if(row.__raw && row.__raw.length < 80){
-          tr.style.opacity = 0.85;
-          tr.title = 'OCR com pouco texto — se possível, use PDF ou imagem de maior resolução';
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${f.name}</td>
+            <td>${row.mes||'—'}</td>
+            <td>${row.salarioBase?brl(row.salarioBase):'—'}</td>
+            <td>${row.totProventos?brl(row.totProventos):'—'}</td>
+            <td>${row.totDescontos?brl(row.totDescontos):'—'}</td>
+            <td>${row.liquido?brl(row.liquido):'—'}</td>
+            <td>${row.variaveis?brl(row.variaveis):'—'}</td>
+            <td>${row.insal?brl(row.insal):'—'}</td>
+            <td>${row.inss?brl(row.inss):'—'}</td>
+            <td>${row.ir?brl(row.ir):'—'}</td>
+            <td>${row.baseINSS?brl(row.baseINSS):'—'}</td>
+            <td>${row.baseFGTS?brl(row.baseFGTS):'—'}</td>
+            <td>${row.valorFGTS?brl(row.valorFGTS):'—'}</td>
+            <td>${row.baseIRRF?brl(row.baseIRRF):'—'}</td>
+          `;
+          if(row.__raw && row.__raw.length < 80){
+            tr.style.opacity = 0.85;
+            tr.title = 'OCR com pouco texto — se possível, use PDF ou imagem de maior resolução';
+          }
+          tbody.appendChild(tr);
+
+          if(row.variaveis>0){ somaVar += row.variaveis; nVar++; }
+        }catch(err){
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${f.name}</td><td colspan="13">Erro ao ler arquivo: ${err.message}</td>`;
+          tbody.appendChild(tr);
         }
-        tbody.appendChild(tr);
-
-        if(row.variaveis>0){ somaVar += row.variaveis; nVar++; }
-      }catch(err){
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${f.name}</td><td colspan="13">Erro ao ler arquivo: ${err.message}</td>`;
-        tbody.appendChild(tr);
       }
-    }
 
-    const media = nVar>0 ? somaVar/nVar : 0;
-    document.getElementById('mediaVars').textContent = brl(media);
-    const mv = document.getElementById('mediaVar');
-    if(mv && media>0){ mv.value = media.toFixed(2).replace('.',','); }
-  });
+      const media = nVar>0 ? somaVar/nVar : 0;
+      document.getElementById('mediaVars').textContent = brl(media);
+      const mv = document.getElementById('mediaVar');
+      if(mv && media>0){ mv.value = media.toFixed(2).replace('.',','); }
+    });
+  }
 }
 
 /* ========= PARSER — Modelo SCI (robusto) ========= */
@@ -70,12 +73,10 @@ function parsePayslipSCI(raw){
     return m ? pickEndMoney(m[0]) : 0;
   };
 
-  // cabeçalho (mês/ano)
   let mes = '';
   const mMes = T.match(/REFERENTE AO MES[:\-]?\s*([A-ZÇÃÕ]+\/\d{4})/);
   if(mMes) mes = mMes[1];
 
-  // Totais
   let totProventos = 0, totDescontos = 0;
   const tot = T.match(/TOTAIS[^\d]{0,20}((\d[\d\.,]*))[^\d]{0,20}((\d[\d\.,]*))/);
   if(tot){
@@ -83,7 +84,6 @@ function parsePayslipSCI(raw){
     totDescontos = pickEndMoney(tot[3]) || 0;
   }
 
-  // Líquido e bases
   const liquido = moneyRE(/SAL[AI]RIO\s*LIQUIDO[^\d]{0,30}R?\$?\s*((\d[\d\.,]*))/);
   const salarioBase = moneyRE(/SAL[AI]RIO\s*BASE[^\d]{0,40}((\d[\d\.,]*))/);
   const baseINSS    = moneyRE(/BASE\s*INSS[^\d]{0,40}((\d[\d\.,]*))/);
@@ -91,13 +91,11 @@ function parsePayslipSCI(raw){
   const valorFGTS   = moneyRE(/VALOR\s*FGTS[^\d]{0,40}((\d[\d\.,]*))/);
   const baseIRRF    = moneyRE(/BASE\s*IRRF[^\d]{0,40}((\d[\d\.,]*))/);
 
-  // Proventos variáveis
   const insal       = moneyRE(/(ADICIONAL\s+INSALUBRIDADE|INSALUBRIDADE)[^\d]{0,120}((\d[\d\.,]*))/);
   const he50        = moneyRE(/HORAS?\s*EXTRAS?\s*50%(?:[^0-9]{0,120})?((\d[\d\.,]*))/);
   const dsrHE       = moneyRE(/DSR\s*HORAS?\s*EXTRAS?(?:[^0-9]{0,120})?((\d[\d\.,]*))/);
   const variaveis   = (insal||0) + (he50||0) + (dsrHE||0);
 
-  // Descontos
   const inss        = moneyRE(/(?:^|\s)INSS(?:\s*\d+%|\s*TOTAL)?[^\d]{0,120}((\d[\d\.,]*))/);
   const taxaNegocial = moneyRE(/TAXA\s*NEGOCIAL(?:[^0-9]{0,120})?((\d[\d\.,]*))/);
   const faltaDia     = moneyRE(/FALTAS?\s*NAO\s*JUSTIFICADAS?\s*DIAS?(?:[^0-9]{0,120})?((\d[\d\.,]*))/);
@@ -105,7 +103,6 @@ function parsePayslipSCI(raw){
   const dsrFaltasDia = moneyRE(/DSR\s*FALTAS?\s*DIA(?:[^0-9]{0,120})?((\d[\d\.,]*))/);
   const vale         = moneyRE(/\b(VALE|ADIANT\.?|ADIANTAMENTO)\b(?:[^0-9]{0,120})?((\d[\d\.,]*))/);
 
-  // IRRF (ignorar Base IRRF)
   let ir = 0;
   const irRe = /IRRF[^\d]{0,60}((\d[\d\.,]*))/g;
   let m; 
@@ -118,8 +115,7 @@ function parsePayslipSCI(raw){
     mes,
     salarioBase, baseINSS, baseFGTS, valorFGTS, baseIRRF,
     insal, variaveis, totProventos, totDescontos, liquido,
-    inss, ir,
-    taxaNegocial, faltaDia, faltaHora, dsrFaltasDia, vale,
+    inss, ir, taxaNegocial, faltaDia, faltaHora, dsrFaltasDia, vale,
     __raw: T.slice(0,160)
   };
 }
