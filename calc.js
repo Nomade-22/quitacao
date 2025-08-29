@@ -10,9 +10,12 @@ export function initCalc(){
     if(el){ el.addEventListener('input', calc); el.addEventListener('change', calc); }
   });
 
-  document.getElementById('btnCSV')?.addEventListener('click', exportCSV);
-  document.getElementById('btnPDF')?.addEventListener('click', ()=>window.print());
-  document.getElementById('btnZerar')?.addEventListener('click', zerar);
+  const bCSV = document.getElementById('btnCSV');
+  if (bCSV) bCSV.addEventListener('click', exportCSV);
+  const bPDF = document.getElementById('btnPDF');
+  if (bPDF) bPDF.addEventListener('click', ()=>window.print());
+  const bZ = document.getElementById('btnZerar');
+  if (bZ) bZ.addEventListener('click', zerar);
 
   calc();
 }
@@ -65,7 +68,8 @@ export function calc(){
     anos = diffYearsFloor(adm, des);
     avisoDias = Math.max(30, Math.min(90, 30 + 3*anos));
   }
-  document.getElementById('avisoDias').textContent = avisoDias || 0;
+  const elAviso = document.getElementById('avisoDias');
+  if (elAviso) elAviso.textContent = avisoDias || 0;
 
   const endProj = (des ? (avisoTipo==='indenizado' && avisoDias>0 ? addDays(des,avisoDias) : des) : null);
 
@@ -75,7 +79,8 @@ export function calc(){
     avos13 = countAvosBetween(start13, endProj || des, 15);
   }
   if(tipo==='justa') avos13 = 0;
-  document.getElementById('avos13').textContent = avos13 + '/12';
+  const a13 = document.getElementById('avos13');
+  if (a13) a13.textContent = avos13 + '/12';
 
   let inicioAquisitivo = document.getElementById('aquisitivoInicio').value ? new Date(document.getElementById('aquisitivoInicio').value+'T12:00:00') : null;
   if(!inicioAquisitivo && adm && des){
@@ -87,7 +92,8 @@ export function calc(){
     avosFerias = countAvosBetween(inicioAquisitivo, endProj || des, 14.01) % 12;
   }
   if(tipo==='justa') avosFerias = 0;
-  document.getElementById('avosFerias').textContent = avosFerias + '/12';
+  const aF = document.getElementById('avosFerias');
+  if (aF) aF.textContent = avosFerias + '/12';
 
   let saldoSalario = 0;
   if(salario && des && diasSaldo>0){
@@ -104,7 +110,7 @@ export function calc(){
   if(tipo==='pedido' && descontoAvisoEmp && avisoDias>0) descontoAviso = base*(avisoDias/30);
 
   const decimoTerceiro = base*(avos13/12);
-  const feriasVencidas = (base/30)*vencidasDias;
+  const feriasVencidas = base/30*vencidasDias;
   const tercoVencidas  = feriasVencidas/3;
   const feriasProp = base*(avosFerias/12);
   const tercoProp  = feriasProp/3;
@@ -134,18 +140,19 @@ export function calc(){
   const totalDesc  = linhas.filter(l=>l.valor<0).reduce((s,l)=>s+l.valor,0)*-1;
   const totalLiq   = totalBruto - totalDesc + multaFGTS;
 
-  const tb = document.getElementById('tbody'); tb.innerHTML='';
+  const tb = document.getElementById('tbody'); if (tb) tb.innerHTML='';
   linhas.forEach(l=>{
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${l.nome}</td><td>${l.base}</td><td>${l.qtd}</td><td>${fmt(l.valor)}</td>`;
     tb.appendChild(tr);
   });
-  document.getElementById('totBruto').textContent = fmt(totalBruto);
-  document.getElementById('totDesc').textContent  = fmt(totalDesc);
-  document.getElementById('totFgts').textContent  = fmt(multaFGTS);
-  document.getElementById('totLiquido').textContent = fmt(totalLiq);
-  document.getElementById('kpiBruto').textContent = fmt(totalBruto);
-  document.getElementById('kpiDesc').textContent  = fmt(totalDesc);
-  document.getElementById('kpiFgts').textContent  = fmt(multaFGTS);
-  document.getElementById('kpiLiquido').textContent = fmt(totalLiq);
+  const set = (id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=fmt(v); };
+  set('totBruto', totalBruto);
+  set('totDesc',  totalDesc);
+  set('totFgts',  multaFGTS);
+  set('totLiquido', totalLiq);
+  set('kpiBruto', totalBruto);
+  set('kpiDesc',  totalDesc);
+  set('kpiFgts',  multaFGTS);
+  set('kpiLiquido', totalLiq);
 }
