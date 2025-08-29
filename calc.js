@@ -1,11 +1,14 @@
 import { $, brl, parseBRL, addDays, diffYearsFloor, countAvosBetween } from './common.js';
 
 export function initCalc(){
-  ['salario','mediaVar','admissao','desligamento','tipo','avisoTipo','diasSaldo','fgtsBase','aquisitivoInicio','feriasVencidasDias','descontoAvisoEmpregado','art480','outrosDesc']
-    .forEach(id=>{
-      const el = document.getElementById(id);
-      if(el){ el.addEventListener('input', calc); el.addEventListener('change', calc); }
-    });
+  [
+    'salario','mediaVar','admissao','desligamento','tipo','avisoTipo',
+    'diasSaldo','fgtsBase','aquisitivoInicio','feriasVencidasDias',
+    'descontoAvisoEmpregado','art480','outrosDesc'
+  ].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){ el.addEventListener('input', calc); el.addEventListener('change', calc); }
+  });
 
   document.getElementById('btnCSV')?.addEventListener('click', exportCSV);
   document.getElementById('btnPDF')?.addEventListener('click', ()=>window.print());
@@ -32,12 +35,13 @@ function exportCSV(){
 }
 
 function zerar(){
-  ['salario','mediaVar','admissao','desligamento','diasSaldo','fgtsBase','aquisitivoInicio','feriasVencidasDias','art480','outrosDesc']
-    .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  [
+    'salario','mediaVar','admissao','desligamento','diasSaldo','fgtsBase',
+    'aquisitivoInicio','feriasVencidasDias','art480','outrosDesc'
+  ].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.querySelector('#tbody')?.replaceChildren();
-  ['totBruto','totDesc','totFgts','totLiquido','kpiBruto','kpiDesc','kpiFgts','kpiLiquido'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.textContent = brl(0);
-  });
+  ['totBruto','totDesc','totFgts','totLiquido','kpiBruto','kpiDesc','kpiFgts','kpiLiquido']
+    .forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent = brl(0); });
 }
 
 export function calc(){
