@@ -4,8 +4,8 @@ import { initCompare } from './compare.js';
 import { initHistory } from './history.js';
 
 function init(){
-  document.getElementById('statusPdf').textContent = window.pdfjsLib ? 'ok' : 'falhou';
-  document.getElementById('statusOcr').textContent = window.Tesseract ? 'ok' : 'falhou';
+  document.getElementById('statusPdf')?.textContent = window.pdfjsLib ? 'ok' : 'falhou';
+  document.getElementById('statusOcr')?.textContent = window.Tesseract ? 'ok' : 'falhou';
 
   initCalc();
   initCompare();
