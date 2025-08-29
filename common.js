@@ -1,3 +1,4 @@
+// util DOM/format
 export const $ = s => document.querySelector(s);
 export const $$ = s => [...document.querySelectorAll(s)];
 export const brl = n => (isFinite(n) ? n : 0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -6,7 +7,7 @@ export function parseBRL(v){
   if(v===undefined||v===null) return 0;
   if(typeof v==='number') return v;
   v = String(v).trim(); if(!v) return 0;
-  v = v.replace(/\s/g,'').replace(/\./g,'').replace(',','.');
+  v = v.replace(/\s/g,'').replace(/\.(?=\d{3}(\D|$))/g,'').replace(',','.');
   const n = Number(v); return isFinite(n) ? n : 0;
 }
 
@@ -34,23 +35,8 @@ export function countAvosBetween(start, end, thresholdDays){
   return count;
 }
 
-/* ===== leitura de arquivos ===== */
-async function readPdfText(file){
-  if(!window.pdfjsLib) throw new Error('pdf.js não carregado');
-  const buf = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise;
-  let full = '';
-  for(let p=1;p<=pdf.numPages;p++){
-    const page = await pdf.getPage(p);
-    const content = await page.getTextContent();
-    const strings = content.items.map(i=>i.str);
-    full += '\n' + strings.join(' ');
-  }
-  return full;
-}
-
-/* ——— pré-processamento de imagem com binarização adaptativa ——— */
-function toBWCanvas(img, scale=2.4){
+/* ================== OCR helpers ================== */
+function toBWCanvas(img, scale=2.2){
   const w = Math.round(img.width * scale);
   const h = Math.round(img.height * scale);
   const canvas = document.createElement('canvas');
@@ -60,7 +46,7 @@ function toBWCanvas(img, scale=2.4){
   ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,h);
   ctx.drawImage(img, 0,0, w, h);
 
-  // grayscale + limiar (threshold) adaptativo simples
+  // grayscale + threshold simples (ajuda muito o OCR)
   const id = ctx.getImageData(0,0,w,h);
   const d = id.data;
   let sum=0;
@@ -79,12 +65,72 @@ function toBWCanvas(img, scale=2.4){
   return canvas;
 }
 
+async function ocrCanvas(canvas){
+  // usa worker quando disponível (melhor performance)
+  if (window.Tesseract?.createWorker) {
+    const worker = await Tesseract.createWorker({ logger: () => {} });
+    await worker.loadLanguage('por+eng');
+    await worker.initialize('por+eng');
+    await worker.setParameters({
+      tessedit_pageseg_mode: '6',
+      tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÃÕÇ/%.,:- ',
+      preserve_interword_spaces: '1',
+      user_defined_dpi: '300'
+    });
+    const { data: { text } } = await worker.recognize(canvas);
+    await worker.terminate();
+    return text || '';
+  }
+  const { data } = await Tesseract.recognize(canvas, 'por+eng', { tessedit_pageseg_mode: '6' });
+  return data?.text || '';
+}
+
+/* ================== Leitura de arquivos ================== */
+// 1) PDF: tenta texto embutido; se vier pouco, faz OCR por página
+async function readPdfSmart(file){
+  if(!window.pdfjsLib) throw new Error('pdf.js não carregado');
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise;
+
+  let full = '';
+  for(let p=1;p<=pdf.numPages;p++){
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent().catch(()=>({items:[]}));
+    const strings = (content.items||[]).map(i=>i.str);
+    full += '\n' + strings.join(' ');
+  }
+  const plainLen = (full||'').replace(/\s+/g,' ').trim().length;
+
+  if (plainLen >= 80) {
+    return full; // já tem texto (PDF "nativo")
+  }
+
+  // fallback: OCR por página (PDF escaneado)
+  let ocrTxt = '';
+  for(let p=1;p<=pdf.numPages;p++){
+    const page = await pdf.getPage(p);
+    const vp = page.getViewport({ scale: 2.4 });
+    const canvas = document.createElement('canvas');
+    canvas.width = vp.width; canvas.height = vp.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+    // binariza p/ OCR
+    const cnv = toBWCanvas(canvas, 1);
+    const text = await ocrCanvas(cnv);
+    ocrTxt += '\n' + (text||'');
+  }
+  return ocrTxt;
+}
+
+// 2) Imagens (jpg/png): pré-processa e OCR
 function preprocessImage(file){
   return new Promise((resolve,reject)=>{
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      const canvas = toBWCanvas(img, Math.min(3000/Math.max(img.width,img.height), 3.2));
+      const canvas = toBWCanvas(img, Math.min(3000/Math.max(img.width,img.height), 3.0));
       URL.revokeObjectURL(url);
       resolve(canvas);
     };
@@ -93,59 +139,16 @@ function preprocessImage(file){
   });
 }
 
-async function ocrWithWorker(image){
-  const worker = await Tesseract.createWorker({ logger: m => console.debug('[tesseract]', m?.status || m) });
-  await worker.loadLanguage('por+eng');
-  await worker.initialize('por+eng');
-  await worker.setParameters({
-    tessedit_pageseg_mode: '6', // bloco de texto
-    tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÃÕÇ/%.,:- ',
-    preserve_interword_spaces: '1',
-    user_defined_dpi: '300'
-  });
-  const { data: { text} } = await worker.recognize(image);
-  await worker.terminate();
-  return text || '';
-}
-
 export async function readAnyText(file){
   const ext = (file.name.split('.').pop() || '').toLowerCase();
 
   if (file.type === 'application/pdf' || ext === 'pdf') {
-    return await readPdfText(file);
+    return await readPdfSmart(file);
   }
 
-  if (file.type.startsWith('image/') || ['jpg','jpeg','png','heic'].includes(ext)) {
-    // 1ª passada: B/W + upscale
+  if (file.type.startsWith('image/') || ['jpg','jpeg','png','heic','webp'].includes(ext)) {
     const canvas = await preprocessImage(file);
-    let text = '';
-    if (window.Tesseract?.createWorker) text = await ocrWithWorker(canvas);
-    else {
-      const { data } = await Tesseract.recognize(canvas, 'por+eng', { tessedit_pageseg_mode: '6' });
-      text = data?.text || '';
-    }
-
-    // fallback se vier muito curto
-    if ((text || '').trim().length < 40) {
-      const url = URL.createObjectURL(file);
-      const img = new Image();
-      const fallback = await new Promise((res)=>{
-        img.onload = async () => {
-          const cv = document.createElement('canvas');
-          const scale = Math.min(2400/Math.max(img.width,img.height), 3.0);
-          cv.width = Math.round(img.width*scale); cv.height = Math.round(img.height*scale);
-          const c = cv.getContext('2d'); c.imageSmoothingEnabled=false;
-          c.fillStyle='#fff'; c.fillRect(0,0,cv.width,cv.height); c.drawImage(img,0,0,cv.width,cv.height);
-          const { data } = await Tesseract.recognize(cv, 'por+eng', { tessedit_pageseg_mode: '6' });
-          res(data?.text || '');
-        };
-        img.onerror = () => res('');
-        img.src = url;
-      });
-      URL.revokeObjectURL(url);
-      if (fallback.trim().length > text.trim().length) text = fallback;
-    }
-    return text;
+    return await ocrCanvas(canvas);
   }
 
   if (ext === 'docx') {
@@ -170,7 +173,7 @@ export async function readAnyText(file){
   return await file.text();
 }
 
-/* -------- util para capturar valores monetários -------- */
+/* -------- util para capturar valores monetários/normalização -------- */
 export function pickVal(re, text){
   const m = re.exec(text);
   if(!m) return null;
