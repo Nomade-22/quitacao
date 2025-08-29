@@ -32,7 +32,7 @@ export function countAvosBetween(start, end, thresholdDays){
   return count;
 }
 
-// -------- File reading (PDF / OCR / DOCX / XLSX / CSV / TXT) --------
+// ---------- leitura de arquivos (PDF/OCR/DOCX/XLSX/CSV/TXT) ----------
 async function readPdfText(file){
   if(!window.pdfjsLib) throw new Error('pdf.js não carregado');
   const buf = await file.arrayBuffer();
@@ -46,8 +46,6 @@ async function readPdfText(file){
   }
   return full;
 }
-
-// image preprocess
 function preprocessImage(file){
   return new Promise((resolve,reject)=>{
     const url = URL.createObjectURL(file);
@@ -69,7 +67,6 @@ function preprocessImage(file){
     img.src = url;
   });
 }
-
 async function ocrWithWorker(image){
   const worker = await Tesseract.createWorker({ logger: m => console.debug('[tesseract]', m?.status || m) });
   await worker.loadLanguage('por+eng');
@@ -83,13 +80,9 @@ async function ocrWithWorker(image){
   await worker.terminate();
   return text || '';
 }
-
 export async function readAnyText(file){
   const ext = (file.name.split('.').pop() || '').toLowerCase();
-
-  if (file.type === 'application/pdf' || ext === 'pdf') {
-    return await readPdfText(file);
-  }
+  if (file.type === 'application/pdf' || ext === 'pdf') return await readPdfText(file);
   if (file.type.startsWith('image/') || ['jpg','jpeg','png'].includes(ext)) {
     const canvas = await preprocessImage(file);
     let text = '';
@@ -118,18 +111,22 @@ export async function readAnyText(file){
     });
     return txt;
   }
-  if (ext === 'csv' || ext === 'txt') {
-    return await file.text();
-  }
+  if (ext === 'csv' || ext === 'txt') return await file.text();
   return await file.text();
 }
 
-// Money picker shared
+// -------- util shared para regex monetária e normalização --------
 export function pickVal(re, text){
   const m = re.exec(text);
   if(!m) return null;
   const raw = (m[1] || m[2] || '').replace(/\s/g,'');
-  const nums = raw.match(/(\d{1,3}(\.\d{3})*|\d+)(,\d{2})?/g);
+  const nums = raw.match(/(\d{1,3}(\.\d{3})*|\d+)(,\d{2})/g);
   if(!nums) return null;
   return nums[nums.length-1];
+}
+export function norm(s){
+  return (s||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // sem acentos
+    .replace(/\s{2,}/g,' ')                          // espaços
+    .toUpperCase();
 }
