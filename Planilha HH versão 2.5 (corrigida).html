@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Planilha HH versão 2.5 — KPIs 2 Linhas (Revisado)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb;
+      --brand:#22d3ee; --accent:#38bdf8; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444; --card:#0b1222; --ring: rgba(56,189,248,.45);
+    }
+    *{box-sizing:border-box} html,body{height:100%}
+    body{
+      margin:0; background: radial-gradient(1200px 800px at 80% -10%, rgba(34,211,238,.06), transparent 60%),
+                                radial-gradient(900px 700px at -20% 10%, rgba(56,189,248,.06), transparent 50%),
+                                var(--bg);
+      color:var(--text); font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      line-height:1.45;
+    }
+    header{position:sticky;top:0;background:rgba(15,23,42,.75);backdrop-filter:saturate(160%) blur(8px);border-bottom:1px solid rgba(148,163,184,.12);z-index:10}
+    .wrap{max-width:1200px;margin:0 auto;padding:16px 20px}
+    h1{font-size: clamp(22px, 2.6vw, 32px);margin:6px 0 2px;font-weight:700;letter-spacing:.2px}
+    .subtitle{color:var(--muted);font-size:14px}
+    .grid{display:grid;grid-template-columns: repeat(12,1fr); gap:16px; margin-top:18px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.008)); border:1px solid rgba(148,163,184,.14); border-radius:16px; padding:16px}
+    .card h2{font-size:14px;color:#cbd5e1;text-transform:uppercase;letter-spacing:.12em;margin:0 0 8px;font-weight:700}
+    .inputs{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .full{grid-column:1/-1}
+    label{display:flex; flex-direction:column; gap:6px; font-size:12px; color:#cbd5e1}
+    input, select{width:100%; padding:14px 12px; border-radius:12px; border:1px solid rgba(148,163,184,.18);
+      background:#0a1222; color:var(--text); outline:none; font-size:16px; transition:.2s ease box-shadow, .2s ease border-color}
+    input:focus, select:focus{box-shadow:0 0 0 4px var(--ring); border-color:var(--accent)}
+    .kpi{display:grid; grid-template-columns: repeat(6, 1fr); gap:12px}
+    .kpi .item{background:linear-gradient(180deg, rgba(56,189,248,.10), rgba(56,189,248,.02)); border:1px solid rgba(56,189,248,.2); border-radius:14px; padding:14px}
+    .kpi .item h3{margin:0;font-size:12px;color:#bae6fd; text-transform:uppercase; letter-spacing:.12em}
+    .kpi .item .val{font-weight:800;font-size:20px;margin-top:6px}
+    .muted{color:var(--muted);font-size:12px}
+    .row{display:flex; gap:10px; align-items:center}
+    .btn{appearance:none; border:1px solid rgba(148,163,184,.2); background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); color:var(--text); padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:600}
+    .btn:hover{border-color:#60a5fa}
+    .btn.primary{border-color:transparent; background:linear-gradient(90deg, var(--accent), var(--brand)); color:#071521}
+    .table-wrap{width:100%; overflow-x:auto}
+    .table{width:100%; border-collapse:separate; border-spacing:0 8px; font-size:14px; min-width:680px}
+    .table th{color:#a5b4fc; font-weight:700; text-align:left; padding:6px 10px}
+    .table td{background:#0a1222; border:1px solid rgba(148,163,184,.14); padding:10px; }
+    .table tr td:first-child{border-radius:12px 0 0 12px}
+    .table tr td:last-child{border-radius:0 12px 12px 0}
+    footer{color:var(--muted); font-size:12px; padding:20px 0; text-align:center}
+    .badge{display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border-radius:999px; font-weight:700; font-size:12px}
+    .ok{background:rgba(34,197,94,.15); color:#86efac; border:1px solid rgba(34,197,94,.35)}
+    .alert{background:rgba(239,68,68,.15); color:#fecaca; border:1px solid rgba(239,68,68,.35)}
+    @media (max-width: 1100px){
+      .grid{grid-template-columns:1fr}
+      .kpi{grid-template-columns:1fr 1fr}
+      .inputs{grid-template-columns:1fr}
+      input, select{font-size:16px; padding:16px 12px}
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Planilha HH versão 2.5</h1>
+      <div class="subtitle">Cálculo direto + KPIs em 2 linhas + Gráficos + <strong>Cálculo Reverso da Nota</strong> com auditoria (gross-up de desconto).</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- KPIs linha 1 -->
+    <section class="kpi" id="kpis_l1">
+      <div class="item">
+        <h3>Lucro Líquido por Hora</h3>
+        <div class="val" id="kpi_lucro_liquido_h">R$ 0,00</div>
+        <div class="muted">após todos os impactos</div>
+      </div>
+      <div class="item">
+        <h3>Preço Final antes da Antecipação</h3>
+        <div class="val" id="kpi_preco_antes_antecip">R$ 0,00</div>
+        <div class="muted">após tributos, sem antecipação/desc.</div>
+      </div>
+      <div class="item">
+        <h3>Custo por Hora</h3>
+        <div class="val" id="kpi_custo_hora">R$ 0,00</div>
+        <div class="muted" id="kpi_custo_mes">/ mês: R$ 0,00</div>
+      </div>
+      <div class="item">
+        <h3>Preço/h (c/ lucro, sem tributos)</h3>
+        <div class="val" id="kpi_preco_hora_sem_imposto">R$ 0,00</div>
+        <div class="muted">base lucrada</div>
+      </div>
+      <div class="item">
+        <h3>Preço Final</h3>
+        <div class="val" id="kpi_preco_hora_final">R$ 0,00</div>
+        <div class="muted" id="kpi_valor_dia">/ dia</div>
+      </div>
+      <div class="item">
+        <h3>Lucro Bruto por Hora</h3>
+        <div class="val" id="kpi_lucro_hora">R$ 0,00</div>
+        <div class="muted" id="kpi_lucro_mes">/ mês: R$ 0,00</div>
+      </div>
+    </section>
+
+    <!-- KPIs linha 2 -->
+    <section class="kpi" id="kpis_l2" style="margin-top:12px">
+      <div class="item">
+        <h3>Margem Final (%)</h3>
+        <div class="val" id="kpi_margem_final">0,00%</div>
+        <div class="muted">sobre o preço final</div>
+      </div>
+      <div class="item">
+        <h3>Lucro Líquido Mensal</h3>
+        <div class="val" id="kpi_lucro_liquido_mes">R$ 0,00</div>
+        <div class="muted">por funcionário</div>
+      </div>
+      <div class="item">
+        <h3>Carga Tributária Total (%)</h3>
+        <div class="val" id="kpi_carga_trib_pct">0,00%</div>
+        <div class="muted">impostos+taxas / preço final</div>
+      </div>
+      <div class="item">
+        <h3>Markup Global (%)</h3>
+        <div class="val" id="kpi_markup_global">0,00%</div>
+        <div class="muted">((Preço final/Custo)−1)</div>
+      </div>
+      <div class="item">
+        <h3>Break-even (h/mês)</h3>
+        <div class="val" id="kpi_breakeven_horas">0</div>
+        <div class="muted">p/ cobrir custo mensal</div>
+      </div>
+      <div class="item">
+        <h3>Rentabilidade (%)</h3>
+        <div class="val" id="kpi_rentab_pct">0,00%</div>
+        <div class="muted">lucro líquido / receita</div>
+      </div>
+    </section>
+
+    <div class="grid" style="margin-top:18px">
+      <!-- Salário & Adicionais -->
+      <section class="card" style="grid-column: span 6;">
+        <h2>Salário & Adicionais (mensal)</h2>
+        <div class="inputs">
+          <label>Função (preset de salário)
+            <select id="funcao">
+              <option value="Mecânico Caldeireiro">Mecânico Caldeireiro</option>
+              <option value="Pedreiro" selected>Pedreiro</option>
+              <option value="Servente">Servente</option>
+              <option value="Meio Oficial">Meio Oficial</option>
+              <option value="Serralheiro">Serralheiro</option>
+              <option value="Soldador">Soldador</option>
+              <option value="Supervisor de Manutenção">Supervisor de Manutenção</option>
+            </select>
+            <span class="muted">Pode editar o salário abaixo após escolher a função.</span>
+          </label>
+          <label>Salário base
+            <input id="salario_base" data-type="money" value="R$ 2.219,80">
+          </label>
+          <label>Insalubridade
+            <input id="insalubridade" data-type="money" value="R$ 282,40">
+          </label>
+          <label>Prêmio/Assiduidade
+            <input id="premio" data-type="money" value="R$ 315,00">
+          </label>
+          <label>Outros adicionais
+            <input id="adicionais" data-type="money" value="R$ 0,00">
+          </label>
+          <div class="full muted">O <strong>salário real</strong> é a soma dos campos acima.</div>
+        </div>
+      </section>
+
+      <!-- Encargos % -->
+      <section class="card" style="grid-column: span 6;">
+        <h2>Encargos sobre Salário (%)</h2>
+        <div class="inputs">
+          <label>INSS (%) <input id="p_inss" type="number" step="0.01" value="11"></label>
+          <label>FGTS (%) <input id="p_fgts" type="number" step="0.01" value="8"></label>
+          <label>Férias (%) <input id="p_ferias" type="number" step="0.01" value="33"></label>
+          <label>13º (%) <input id="p_13" type="number" step="0.01" value="8.33"></label>
+          <label>Rescisão/Provisão (%) <input id="p_rescisao" type="number" step="0.01" value="30"></label>
+          <label>Outros (%) <input id="p_outros" type="number" step="0.01" value="0"></label>
+        </div>
+        <div class="muted" id="encargos_total_text">Total de encargos: 0% (editável)</div>
+      </section>
+
+      <!-- Custos variáveis -->
+      <section class="card" style="grid-column: span 6;">
+        <h2>Custos Variáveis (mensal)</h2>
+        <div class="inputs">
+          <label>Uniforme/EPI <input id="uniforme" data-type="money" value="R$ 350,00"></label>
+          <label>Transporte <input id="transporte" data-type="money" value="R$ 0,00"></label>
+          <label>Exames / ASO <input id="exames" data-type="money" value="R$ 41,00"></label>
+          <label>Ferramentas <input id="ferramentas" data-type="money" value="R$ 300,00"></label>
+        </div>
+      </section>
+
+      <!-- Fixos & Horas -->
+      <section class="card" style="grid-column: span 6;">
+        <h2>Custos Fixos & Horas</h2>
+        <div class="inputs">
+          <label>Fixos totais (mês) <input id="fixos_total" data-type="money" value="R$ 22.598,00"></label>
+          <label>Nº de funcionários (para rateio) <input id="qtd_funcionarios" type="number" min="1" value="10"></label>
+          <label>Incluir rateio? <select id="incluir_rateio"><option value="sim" selected>Sim</option><option value="nao">Não</option></select></label>
+          <label>Horas/dia <input id="horas_dia" type="number" step="0.1" value="8.8"></label>
+          <label>Dias/mês <input id="dias_mes" type="number" step="1" value="25"></label>
+          <label class="full">Horas/mês (auto) <input id="horas_mes" type="number" step="1" value="220" readonly></label>
+        </div>
+      </section>
+
+      <!-- Preço de venda -->
+      <section class="card" style="grid-column: span 6;">
+        <h2>Preço de Venda</h2>
+        <div class="inputs">
+          <label>Lucro (%) <input id="p_lucro" type="number" step="0.01" value="30"></label>
+          <label>Impostos sobre faturamento (%) <input id="p_impostos" type="number" step="0.01" value="30"></label>
+          <label>Troca de Nota / Taxas (%) <input id="p_taxas" type="number" step="0.01" value="12"></label>
+          <label>Antecipação de recebíveis (%) <input id="p_antecipacao" type="number" step="0.01" value="2.5"></label>
+          <label>Desconto comercial (%) <input id="p_desconto" type="number" step="0.01" value="5"></label>
+        </div>
+      </section>
+
+      <!-- Projeção por equipe -->
+      <section class="card" style="grid-column: span 6;">
+        <h2>Projeção por Equipe</h2>
+        <div class="inputs">
+          <label>Qde funcionários na obra <input id="qtd_equipe" type="number" min="1" value="4"></label>
+          <label>Horas vendidas/mês por funcionário <input id="horas_vendidas" type="number" step="1" value="220"></label>
+        </div>
+        <div class="table-wrap">
+          <table class="table" style="margin-top:10px">
+            <thead><tr><th>Indicador</th><th>Valor</th></tr></thead>
+            <tbody>
+              <tr><td>CSP total (custo)</td><td id="t_csp">R$ 0,00</td></tr>
+              <tr><td>Receita total (preço final)</td><td id="t_receita">R$ 0,00</td></tr>
+              <tr><td>Lucro bruto total</td><td id="t_lucro">R$ 0,00</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="btnReset">Limpar valores</button>
+          <button class="btn primary" id="btnPrint">Imprimir / PDF</button>
+        </div>
+      </section>
+
+      <!-- Detalhamento + Gráficos -->
+      <section class="card" style="grid-column: span 8;">
+        <h2>Detalhamento do Cálculo</h2>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Item</th><th>Valor</th><th>Observação</th></tr></thead>
+            <tbody>
+              <tr><td>Salário real (base + adicionais)</td><td id="d_salario">R$ 0,00</td><td>Mensal</td></tr>
+              <tr><td>Encargos (soma de %)</td><td id="d_encargos">R$ 0,00</td><td id="d_encargos_pct">0%</td></tr>
+              <tr><td>Custos variáveis</td><td id="d_variaveis">R$ 0,00</td><td>Uniforme, transporte, exames, ferramentas</td></tr>
+              <tr><td>Rateio de fixos por funcionário</td><td id="d_rateio">R$ 0,00</td><td id="d_rateio_obs">Incluído</td></tr>
+              <tr><td><strong>Custo mensal por funcionário</strong></td><td id="d_custo_mensal"><strong>R$ 0,00</strong></td><td></td></tr>
+              <tr><td>Custo por hora (mensal ÷ horas)</td><td id="d_custo_hora">R$ 0,00</td><td id="d_horas">220 h/mês</td></tr>
+              <tr><td>Preço/hora com lucro</td><td id="d_preco_sem_imp">R$ 0,00</td><td>× (1 + lucro)</td></tr>
+              <tr><td>Após impostos e taxas</td><td id="d_preco_tributado">R$ 0,00</td><td>× (1 + impostos + taxas)</td></tr>
+              <tr><td>Após antecipação</td><td id="d_preco_antecip">R$ 0,00</td><td>× (1 + antecipação)</td></tr>
+              <tr><td><strong>Preço/hora final ao cliente</strong></td><td id="d_preco_final"><strong>R$ 0,00</strong></td><td>× (1 − desconto)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" style="grid-column: span 4;">
+        <h2>Gráficos</h2>
+        <div style="display:grid; gap:14px">
+          <div><div class="muted" style="margin-bottom:6px">Composição do Custo Mensal</div><canvas id="chartComposicao" height="180"></canvas></div>
+          <div><div class="muted" style="margin-bottom:6px">Comparativo por Hora</div><canvas id="chartComparativo" height="180"></canvas></div>
+          <div><div class="muted" style="margin-bottom:6px">Impactos (R$/h)</div><canvas id="chartImpactos" height="180"></canvas></div>
+        </div>
+      </section>
+
+      <!-- ===== MÓDULO: Cálculo Reverso da Nota (integrado abaixo) ===== -->
+      <section class="card" style="grid-column: span 12;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
+          <h2 style="margin:0">Cálculo Reverso da Nota (R$/h)</h2>
+          <span id="auditoria_badge" class="badge ok">Auditoria: OK</span>
+        </div>
+        <div class="muted" style="margin:8px 0 12px">Nota Bruta é preenchida automaticamente com o <strong>Preço Final por Hora</strong> calculado acima. Editável. Checkboxes independentes e cálculo automático.</div>
+        <div class="inputs">
+          <label class="full">Valor da Nota Bruta (R$/h)
+            <input id="rev_bruta" data-type="money" value="R$ 0,00">
+          </label>
+          <label><span><input type="checkbox" id="rev_issqn" checked> Considerar ISSQN (%)</span>
+            <input id="rev_p_issqn" type="number" step="0.01" value="5">
+          </label>
+          <label><span><input type="checkbox" id="rev_inss"> Considerar INSS (%)</span>
+            <input id="rev_p_inss" type="number" step="0.01" value="11">
+          </label>
+          <label><span><input type="checkbox" id="rev_simples" checked> Considerar Simples Nacional (%)</span>
+            <input id="rev_p_simples" type="number" step="0.01" value="14">
+          </label>
+          <label><span><input type="checkbox" id="rev_antecip" checked> Considerar Antecipação (%)</span>
+            <input id="rev_p_antecip" type="number" step="0.01" value="2.5">
+          </label>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table" style="margin-top:10px">
+            <thead><tr><th>Etapa</th><th>Valor (R$/h)</th><th>Observação</th></tr></thead>
+            <tbody>
+              <tr><td>Nota Bruta (entrada)</td><td id="rev_v_bruta">R$ 0,00</td><td>valor informado/auto do preço final</td></tr>
+              <tr><td>Menos ISSQN</td><td id="rev_v_issqn">R$ 0,00</td><td id="rev_obs_issqn">aplicado se marcado</td></tr>
+              <tr><td>Menos INSS</td><td id="rev_v_inss">R$ 0,00</td><td id="rev_obs_inss">aplicado se marcado</td></tr>
+              <tr><td>Menos Simples</td><td id="rev_v_simples">R$ 0,00</td><td id="rev_obs_simples">aplicado se marcado</td></tr>
+              <tr><td>Menos Antecipação</td><td id="rev_v_antecip">R$ 0,00</td><td id="rev_obs_antecip">aplicado se marcado</td></tr>
+              <tr><td><strong>Valor Líquido (R$/h)</strong></td><td id="rev_v_liquido"><strong>R$ 0,00</strong></td><td>após descontos selecionados</td></tr>
+              <tr><td><strong>Resultado da Auditoria</strong></td><td id="rev_v_auditoria"><strong>—</strong></td><td id="rev_obs_auditoria">Preço/hora antes do desconto comercial</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <footer class="muted">Planilha HH 2.5 — Cálculo direto e reverso, KPIs em 2 linhas, com atualização automática e auditoria.</footer>
+  </main>
+
+  <script>
+    // ===== Helpers =====
+    const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+    function toNumberBRL(v){ if(v===undefined||v===null) return 0; v = String(v).trim(); if(!v) return 0; v = v.replace(/[^0-9,.-]/g,'').replace(/\.(?=\d{3}(\D|$))/g,'').replace(',', '.'); const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+    function fmtBRL(n){ return BRL.format(isFinite(n)? n : 0); }
+    function fmtPct(n){ return (isFinite(n)? n : 0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) + '%'; }
+    function pctToDec(id){ return (parseFloat(document.getElementById(id).value.replace(',', '.')) || 0)/100; }
+    function money(id){ return toNumberBRL(document.getElementById(id).value); }
+    function num(id){ return parseFloat(document.getElementById(id).value.replace(',', '.')) || 0; }
+
+    // Presets
+    const FUNCOES_SAL = {"Mecânico Caldeireiro":2574.53,"Pedreiro":2219.80,"Servente":1841.40,"Meio Oficial":1889.80,"Serralheiro":2574.53,"Soldador":3000.00,"Supervisor de Manutenção":2587.80};
+
+    // Charts
+    let chartComposicao, chartComparativo, chartImpactos;
+    const palette = ['#22d3ee','#38bdf8','#60a5fa','#818cf8','#a78bfa','#f472b6','#fb7185','#f59e0b','#84cc16'];
+
+    // Memória p/ auditoria (e comparação no reverso)
+    let lastCustoHora = 0, lastPrecoFinal = 0, lastPrecoAntecip = 0;
+
+    function initCharts(){
+      const c1 = document.getElementById('chartComposicao')?.getContext('2d');
+      const c2 = document.getElementById('chartComparativo')?.getContext('2d');
+      const c3 = document.getElementById('chartImpactos')?.getContext('2d');
+      if(c1){
+        chartComposicao = new Chart(c1, { type:'doughnut',
+          data:{ labels:['Salário','Encargos','Variáveis','Rateio Fixos'], datasets:[{data:[0,0,0,0], backgroundColor:palette, borderWidth:0}]},
+          options:{ plugins:{ legend:{ labels:{ color:'#e5e7eb' } } } }
+        });
+      }
+      if(c2){
+        chartComparativo = new Chart(c2, { type:'bar',
+          data:{ labels:['Custo/h','c/ Lucro','Antes Antecip.','Final'],
+            datasets:[{label:'R$/h', data:[0,0,0,0], backgroundColor:[palette[2],palette[3],palette[7],palette[6]], borderWidth:0}]},
+          options:{ plugins:{ legend:{ labels:{ color:'#e5e7eb' } } }, scales:{ x:{ ticks:{ color:'#e5e7eb' } }, y:{ ticks:{ color:'#e5e7eb' } } } }
+        });
+      }
+      if(c3){
+        chartImpactos = new Chart(c3, { type:'bar',
+          data:{ labels:['Impostos+Taxas','Antecipação','Desconto'],
+            datasets:[{label:'R$/h', data:[0,0,0], backgroundColor:[palette[8],palette[1],palette[6]], borderWidth:0}]},
+          options:{ plugins:{ legend:{ labels:{ color:'#e5e7eb' } } }, scales:{ x:{ ticks:{ color:'#e5e7eb' } }, y:{ ticks:{ color:'#e5e7eb' } } } }
+        });
+      }
+    }
+
+    function calcHorasMes(){
+      const hd = num('horas_dia'), dm = num('dias_mes'); const hm = Math.max(0, hd*dm);
+      const el = document.getElementById('horas_mes'); if(el) el.value = isFinite(hm) ? Math.round(hm) : 0; 
+      return hm;
+    }
+    function somaEncargos(){
+      const p = ['p_inss','p_fgts','p_ferias','p_13','p_rescisao','p_outros'].map(id=> parseFloat(document.getElementById(id).value.replace(',', '.')) || 0).reduce((a,b)=>a+b,0);
+      const t = document.getElementById('encargos_total_text'); if(t) t.textContent = `Total de encargos: ${p.toLocaleString('pt-BR', {maximumFractionDigits:2})}%`; 
+      return p/100;
+    }
+
+    function calcDireto(){
+      const salario = money('salario_base') + money('insalubridade') + money('premio') + money('adicionais');
+      const encargosDec = somaEncargos(), encargosVal = salario * encargosDec;
+      const variaveis = money('uniforme') + money('transporte') + money('exames') + money('ferramentas');
+
+      const incluirRateio = document.getElementById('incluir_rateio').value === 'sim';
+      const rateio = incluirRateio ? (money('fixos_total') / Math.max(1, Math.floor(num('qtd_funcionarios')))) : 0;
+
+      const horasMes = calcHorasMes();
+      const custoMensal = salario + encargosVal + variaveis + rateio;
+      const custoHora = horasMes > 0 ? (custoMensal / horasMes) : 0;
+      lastCustoHora = custoHora;
+
+      const lucro = pctToDec('p_lucro');
+      const impostos = pctToDec('p_impostos') + pctToDec('p_taxas');
+      const antecipacao = pctToDec('p_antecipacao');
+      const desconto = pctToDec('p_desconto');
+
+      const precoHoraSemImp = custoHora * (1 + lucro);
+      const precoHoraTrib   = precoHoraSemImp * (1 + impostos);   // antes da antecipação
+      const precoHoraAntecip= precoHoraTrib * (1 + antecipacao);  // antes do desconto
+      const precoHoraFinal  = precoHoraAntecip * (1 - desconto);  // final ao cliente
+      lastPrecoFinal = precoHoraFinal;
+      lastPrecoAntecip = precoHoraAntecip;
+
+      const valorDiaFinal = precoHoraFinal * num('horas_dia');
+      const lucroHora = Math.max(0, precoHoraFinal - custoHora);
+      const lucroMes = lucroHora * horasMes;
+
+      // KPIs L1
+      document.getElementById('kpi_lucro_liquido_h').textContent = fmtBRL(lucroHora);
+      document.getElementById('kpi_preco_antes_antecip').textContent = fmtBRL(precoHoraAntecip);
+      document.getElementById('kpi_custo_hora').textContent = fmtBRL(custoHora);
+      document.getElementById('kpi_custo_mes').textContent = `/ mês: ${fmtBRL(custoMensal)}`;
+      document.getElementById('kpi_preco_hora_sem_imposto').textContent = fmtBRL(precoHoraSemImp);
+      document.getElementById('kpi_preco_hora_final').textContent = fmtBRL(precoHoraFinal);
+      document.getElementById('kpi_valor_dia').textContent = `/ dia: ${fmtBRL(valorDiaFinal)}`;
+      document.getElementById('kpi_lucro_hora').textContent = fmtBRL(lucroHora);
+      document.getElementById('kpi_lucro_mes').textContent = `/ mês: ${fmtBRL(lucroMes)}`;
+
+      // KPIs L2
+      const margemFinal = precoHoraFinal > 0 ? ((precoHoraFinal - custoHora) / precoHoraFinal) * 100 : 0;
+      document.getElementById('kpi_margem_final').textContent = fmtPct(margemFinal);
+      const lucroLiquidoHora = lucroHora;
+      const lucroLiquidoMes = lucroMes;
+      const cargaTribPct = (precoHoraFinal > 0) ? ((precoHoraTrib - precoHoraSemImp) / precoHoraFinal) * 100 : 0;
+      const markupGlobal = (custoHora > 0) ? ((precoHoraFinal / custoHora) - 1) * 100 : 0;
+      const breakevenHoras = (precoHoraFinal > 0) ? (custoMensal / precoHoraFinal) : 0;
+      const rentabPct = (precoHoraFinal > 0) ? ((lucroLiquidoHora / precoHoraFinal) * 100) : 0;
+
+      document.getElementById('kpi_lucro_liquido_mes').textContent = fmtBRL(lucroLiquidoMes);
+      document.getElementById('kpi_carga_trib_pct').textContent = fmtPct(cargaTribPct);
+      document.getElementById('kpi_markup_global').textContent = fmtPct(markupGlobal);
+      document.getElementById('kpi_breakeven_horas').textContent = isFinite(breakevenHoras) ? Math.ceil(breakevenHoras).toLocaleString('pt-BR') : '0';
+      document.getElementById('kpi_rentab_pct').textContent = fmtPct(rentabPct);
+
+      // Detalhamento
+      document.getElementById('d_salario').textContent = fmtBRL(salario);
+      document.getElementById('d_encargos').textContent = fmtBRL(encargosVal);
+      document.getElementById('d_encargos_pct').textContent = (encargosDec*100).toLocaleString('pt-BR', {maximumFractionDigits:2}) + '%';
+      document.getElementById('d_variaveis').textContent = fmtBRL(variaveis);
+      document.getElementById('d_rateio').textContent = fmtBRL(rateio);
+      document.getElementById('d_rateio_obs').textContent = incluirRateio ? `Incluído (fixos / ${Math.max(1, Math.floor(num('qtd_funcionarios')))} funcionários)` : 'Excluído';
+      document.getElementById('d_custo_mensal').textContent = fmtBRL(custoMensal);
+      document.getElementById('d_custo_hora').textContent = fmtBRL(custoHora);
+      document.getElementById('d_horas').textContent = `${Math.round(horasMes)} h/mês`;
+      document.getElementById('d_preco_sem_imp').textContent = fmtBRL(precoHoraSemImp);
+      document.getElementById('d_preco_tributado').textContent = fmtBRL(precoHoraTrib);
+      document.getElementById('d_preco_antecip').textContent = fmtBRL(precoHoraAntecip);
+      document.getElementById('d_preco_final').textContent = fmtBRL(precoHoraFinal);
+
+      // Projeção por equipe
+      const qtdEquipe = Math.max(1, Math.floor(num('qtd_equipe')));
+      const horasVendidas = Math.max(0, num('horas_vendidas'));
+      const CSP_total = custoHora * horasVendidas * qtdEquipe;
+      const Receita_total = precoHoraFinal * horasVendidas * qtdEquipe;
+      const Lucro_total = Receita_total - CSP_total;
+      document.getElementById('t_csp').textContent = fmtBRL(CSP_total);
+      document.getElementById('t_receita').textContent = fmtBRL(Receita_total);
+      document.getElementById('t_lucro').textContent = fmtBRL(Lucro_total);
+
+      // Gráficos
+      if(chartComposicao){ chartComposicao.data.datasets[0].data = [salario, encargosVal, variaveis, rateio]; chartComposicao.update(); }
+      if(chartComparativo){ chartComparativo.data.datasets[0].data = [custoHora, precoHoraSemImp, precoHoraTrib, precoHoraFinal]; chartComparativo.update(); }
+      if(chartImpactos){
+        const impostosValH = precoHoraSemImp * impostos;
+        const antecipValH  = precoHoraTrib * antecipacao;
+        const descontoValH = precoHoraAntecip * (pctToDec('p_desconto'));
+        chartImpactos.data.datasets[0].data = [impostosValH, antecipValH, descontoValH]; chartImpactos.update();
+      }
+
+      // Preencher Nota Bruta e recalcular reverso
+      const revBruta = document.getElementById('rev_bruta');
+      if(revBruta){ revBruta.value = fmtBRL(precoHoraFinal); }
+      calcReverso();
+    }
+
+    function calcReverso(){
+      const bruto = money('rev_bruta');
+      const useISS = document.getElementById('rev_issqn').checked;
+      const useINSS = document.getElementById('rev_inss').checked;
+      const useSIMP = document.getElementById('rev_simples').checked;
+      const useANT = document.getElementById('rev_antecip').checked;
+
+      const pISS = (parseFloat(document.getElementById('rev_p_issqn').value.replace(',', '.'))||0)/100;
+      const pINSS = (parseFloat(document.getElementById('rev_p_inss').value.replace(',', '.'))||0)/100;
+      const pSIMP = (parseFloat(document.getElementById('rev_p_simples').value.replace(',', '.'))||0)/100;
+      const pANT = (parseFloat(document.getElementById('rev_p_antecip').value.replace(',', '.'))||0)/100;
+
+      let v = bruto;
+      const dISS = useISS ? v * pISS : 0; v -= dISS;
+      const dINSS = useINSS ? v * pINSS : 0; v -= dINSS;
+      const dSIMP = useSIMP ? v * pSIMP : 0; v -= dSIMP;
+      const dANT = useANT ? v * pANT : 0; v -= dANT;
+
+      document.getElementById('rev_v_bruta').textContent = fmtBRL(bruto);
+      document.getElementById('rev_v_issqn').textContent = fmtBRL(dISS);
+      document.getElementById('rev_v_inss').textContent = fmtBRL(dINSS);
+      document.getElementById('rev_v_simples').textContent = fmtBRL(dSIMP);
+      document.getElementById('rev_v_antecip').textContent = fmtBRL(dANT);
+      document.getElementById('rev_v_liquido').textContent = fmtBRL(v);
+
+      // Auditoria (reconstruir preço antes do desconto comercial a partir da Nota Bruta)
+      const pDescontoMain = (parseFloat(document.getElementById('p_desconto').value.replace(',', '.')) || 0)/100;
+      const antesDesc = (1 - pDescontoMain) > 0 ? bruto / (1 - pDescontoMain) : bruto;
+      const badge = document.getElementById('auditoria_badge');
+      const out = document.getElementById('rev_v_auditoria');
+      const obs = document.getElementById('rev_obs_auditoria');
+      if(out){ out.textContent = fmtBRL(antesDesc); }
+      if(obs){ obs.textContent = 'Preço/hora antes do desconto comercial (reconstruído).'; }
+
+      const diff = antesDesc - lastPrecoAntecip; // comparar com valor direto "antes do desconto"
+      if(Math.abs(diff) <= 0.01){
+        if(badge){ badge.className = 'badge ok'; badge.textContent = 'Auditoria: OK'; }
+      }else{
+        if(badge){ badge.className = 'badge alert'; badge.textContent = 'Auditoria: ALERTA'; }
+      }
+
+      document.getElementById('rev_obs_issqn').textContent = useISS ? `aplicado ${(pISS*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}%` : 'não aplicado';
+      document.getElementById('rev_obs_inss').textContent = useINSS ? `aplicado ${(pINSS*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}%` : 'não aplicado';
+      document.getElementById('rev_obs_simples').textContent = useSIMP ? `aplicado ${(pSIMP*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}%` : 'não aplicado';
+      document.getElementById('rev_obs_antecip').textContent = useANT ? `aplicado ${(pANT*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}%` : 'não aplicado';
+    }
+
+    function formatMoneyInputs(){
+      document.querySelectorAll('input[data-type="money"]').forEach(inp=>{
+        inp.addEventListener('blur', ()=>{ inp.value = fmtBRL(toNumberBRL(inp.value)); calcDireto(); });
+        inp.addEventListener('input', ()=>{ calcDireto(); });
+        inp.value = fmtBRL(toNumberBRL(inp.value));
+      });
+      ['rev_bruta','rev_p_issqn','rev_p_inss','rev_p_simples','rev_p_antecip'].forEach(id=>{
+        const el = document.getElementById(id);
+        if(id==='rev_bruta'){ el.addEventListener('blur', ()=>{ el.value = fmtBRL(toNumberBRL(el.value)); calcReverso(); }); el.addEventListener('input', calcReverso); }
+        else { el.addEventListener('input', calcReverso); }
+      });
+      ['rev_issqn','rev_inss','rev_simples','rev_antecip'].forEach(id=>{ document.getElementById(id).addEventListener('change', calcReverso); });
+    }
+
+    function bindAll(){
+      formatMoneyInputs();
+      document.querySelectorAll('input, select').forEach(el=> el.addEventListener('input', calcDireto));
+      document.getElementById('btnPrint').addEventListener('click', ()=>window.print());
+      document.getElementById('btnReset').addEventListener('click', ()=>{
+        document.querySelectorAll('input[type="number"]').forEach(el=>{ if(!el.readOnly) el.value = el.defaultValue; });
+        document.querySelectorAll('input[data-type="money"]').forEach(el=>{ el.value = el.defaultValue || 'R$ 0,00'; });
+        document.getElementById('incluir_rateio').value = 'sim';
+        document.getElementById('funcao').value = 'Pedreiro';
+        document.getElementById('salario_base').value = fmtBRL(FUNCOES_SAL['Pedreiro']);
+        calcDireto();
+        calcReverso();
+      });
+      const sel = document.getElementById('funcao');
+      sel.addEventListener('change', ()=>{
+        document.getElementById('salario_base').value = fmtBRL(FUNCOES_SAL[sel.value]||0);
+        calcDireto();
+      });
+      initCharts();
+      calcDireto();
+      calcReverso();
+    }
+    document.addEventListener('DOMContentLoaded', bindAll);
+  </script>
+</body>
+</html>
