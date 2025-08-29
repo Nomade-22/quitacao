@@ -4,8 +4,10 @@ import { initCompare } from './compare.js';
 import { initHistory } from './history.js';
 
 function init(){
-  document.getElementById('statusPdf')?.textContent = window.pdfjsLib ? 'ok' : 'falhou';
-  document.getElementById('statusOcr')?.textContent = window.Tesseract ? 'ok' : 'falhou';
+  const sp = document.getElementById('statusPdf');
+  if (sp) sp.textContent = window.pdfjsLib ? 'ok' : 'falhou';
+  const so = document.getElementById('statusOcr');
+  if (so) so.textContent = window.Tesseract ? 'ok' : 'falhou';
 
   initCalc();
   initCompare();
@@ -16,9 +18,14 @@ function init(){
       $$('.tab').forEach(x=>x.classList.remove('active'));
       e.currentTarget.classList.add('active');
       const on = e.currentTarget.dataset.tab;
-      document.getElementById('tab-calc').style.display = (on==='calc') ? '' : 'none';
-      document.getElementById('tab-cmp').style.display  = (on==='cmp')  ? '' : 'none';
-      document.getElementById('tab-hist').style.display = (on==='hist') ? '' : 'none';
+
+      const tc = document.getElementById('tab-calc');
+      const tm = document.getElementById('tab-cmp');
+      const th = document.getElementById('tab-hist');
+      if (tc) tc.style.display = (on==='calc') ? '' : 'none';
+      if (tm) tm.style.display = (on==='cmp')  ? '' : 'none';
+      if (th) th.style.display = (on==='hist') ? '' : 'none';
+
       if(on==='calc') calc();
     });
   });
