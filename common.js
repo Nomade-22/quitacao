@@ -98,7 +98,7 @@ async function ocrWithWorker(image){
   await worker.loadLanguage('por+eng');
   await worker.initialize('por+eng');
   await worker.setParameters({
-    tessedit_pageseg_mode: '6', // Assume um bloco de texto uniforme
+    tessedit_pageseg_mode: '6', // bloco de texto
     tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÃÕÇ/%.,:- ',
     preserve_interword_spaces: '1',
     user_defined_dpi: '300'
