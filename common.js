@@ -46,7 +46,7 @@ function toBWCanvas(img, scale=2.2){
   ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,h);
   ctx.drawImage(img, 0,0, w, h);
 
-  // grayscale + threshold simples (ajuda muito o OCR)
+  // grayscale + threshold simples
   const id = ctx.getImageData(0,0,w,h);
   const d = id.data;
   let sum=0;
@@ -66,7 +66,6 @@ function toBWCanvas(img, scale=2.2){
 }
 
 async function ocrCanvas(canvas){
-  // usa worker quando disponível (melhor performance)
   if (window.Tesseract?.createWorker) {
     const worker = await Tesseract.createWorker({ logger: () => {} });
     await worker.loadLanguage('por+eng');
@@ -86,7 +85,7 @@ async function ocrCanvas(canvas){
 }
 
 /* ================== Leitura de arquivos ================== */
-// 1) PDF: tenta texto embutido; se vier pouco, faz OCR por página
+// PDF: tenta texto embutido; se vier pouco, OCR por página (PDF escaneado)
 async function readPdfSmart(file){
   if(!window.pdfjsLib) throw new Error('pdf.js não carregado');
   const buf = await file.arrayBuffer();
@@ -100,12 +99,9 @@ async function readPdfSmart(file){
     full += '\n' + strings.join(' ');
   }
   const plainLen = (full||'').replace(/\s+/g,' ').trim().length;
+  if (plainLen >= 80) return full; // PDF nativo (tem texto)
 
-  if (plainLen >= 80) {
-    return full; // já tem texto (PDF "nativo")
-  }
-
-  // fallback: OCR por página (PDF escaneado)
+  // fallback: OCR de cada página
   let ocrTxt = '';
   for(let p=1;p<=pdf.numPages;p++){
     const page = await pdf.getPage(p);
@@ -116,7 +112,6 @@ async function readPdfSmart(file){
     ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
     await page.render({ canvasContext: ctx, viewport: vp }).promise;
 
-    // binariza p/ OCR
     const cnv = toBWCanvas(canvas, 1);
     const text = await ocrCanvas(cnv);
     ocrTxt += '\n' + (text||'');
@@ -124,7 +119,7 @@ async function readPdfSmart(file){
   return ocrTxt;
 }
 
-// 2) Imagens (jpg/png): pré-processa e OCR
+// Imagens (jpg/png...)
 function preprocessImage(file){
   return new Promise((resolve,reject)=>{
     const url = URL.createObjectURL(file);
@@ -173,7 +168,7 @@ export async function readAnyText(file){
   return await file.text();
 }
 
-/* -------- util para capturar valores monetários/normalização -------- */
+/* -------- util extra -------- */
 export function pickVal(re, text){
   const m = re.exec(text);
   if(!m) return null;
