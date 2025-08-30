@@ -1,70 +1,127 @@
-<!-- ABA COMPARAÇÃO -->
-<div id="tab-cmp" class="grid" style="display:none">
-  <div class="card">
-    <h2>3) Comparação com TRCT da Contabilidade</h2>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Calculadora de Rescisão CLT — Quitação</title>
 
-    <div class="row">
-      <div class="col-12">
-        <div class="drop">
-          <strong>Carregar TRCT/Termo (PDF, JPG/PNG, DOCX, XLSX/CSV, TXT)</strong><br>
-          <input id="fileTRCT" type="file" accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx,.xls,.csv,.txt" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css" />
+
+<!-- libs necessárias -->
+<script defer src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+    }
+  });
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<!-- app (módulos) -->
+<script type="module" src="./app.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Calculadora de Rescisão CLT — Quitação</h1>
+      <div class="sub">Arquitetura plana — cada aba é um arquivo</div>
+    </div>
+    <div class="badge">pdf.js: <span id="statusPdf">…</span> • OCR: <span id="statusOcr">…</span></div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="calc">Cálculo</button>
+    <button class="tab" data-tab="cmp">Comparação TRCT</button>
+    <button class="tab" data-tab="hist">Histórico (Contracheques)</button>
+  </div>
+
+  <section class="kpis">
+    <div class="kpi"><h3>Total Bruto (cálculo)</h3><div class="val" id="kpiBruto">R$ 0,00</div></div>
+    <div class="kpi"><h3>Descontos (cálculo)</h3><div class="val" id="kpiDesc">R$ 0,00</div></div>
+    <div class="kpi"><h3>Multa FGTS (cálculo)</h3><div class="val" id="kpiFgts">R$ 0,00</div></div>
+    <div class="kpi"><h3>Total a Receber (cálculo)</h3><div class="val" id="kpiLiquido">R$ 0,00</div></div>
+  </section>
+
+  <!-- ABA CALC (continua como já estava no seu repo) -->
+  <div id="tab-calc" class="grid">
+    <!-- o conteúdo padrão da sua aba de cálculo é carregado por calc.js -->
+  </div>
+
+  <!-- ABA COMPARAÇÃO (atualizada) -->
+  <div id="tab-cmp" class="grid" style="display:none">
+    <div class="card">
+      <h2>3) Comparação com TRCT da Contabilidade</h2>
+
+      <div class="row">
+        <div class="col-12">
+          <div class="drop">
+            <strong>Carregar TRCT/Termo (PDF, JPG/PNG, DOCX, XLSX/CSV, TXT)</strong><br>
+            <input id="fileTRCT" type="file" accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx,.xls,.csv,.txt" />
+          </div>
+        </div>
+      </div>
+
+      <div class="two">
+        <div>
+          <h3 style="margin:0 0 8px 0">Valores do TRCT (auto ou manual)</h3>
+
+          <div class="row">
+            <!-- RECEBIMENTOS -->
+            <div class="col-6"><label>Saldo de salário</label><input id="trct_saldo" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>Aviso prévio indenizado</label><input id="trct_aviso" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>13º proporcional</label><input id="trct_13" type="text" inputmode="decimal"></div>
+
+            <div class="col-6"><label>Férias vencidas</label><input id="trct_ferias_venc" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>1/3 férias vencidas</label><input id="trct_terco_venc" type="text" inputmode="decimal"></div>
+
+            <div class="col-6"><label>Férias proporcionais</label><input id="trct_ferias" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>1/3 férias proporcionais</label><input id="trct_terco" type="text" inputmode="decimal"></div>
+
+            <div class="col-6"><label>Outras verbas</label><input id="trct_outras" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>Multa FGTS (40%/20%)</label><input id="trct_multa_fgts" type="text" inputmode="decimal"></div>
+          </div>
+
+          <div class="row">
+            <!-- DESCONTOS -->
+            <div class="col-6"><label>INSS (desconto)</label><input id="trct_inss" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>IRRF (desconto)</label><input id="trct_ir" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>Faltas + DSR</label><input id="trct_faltas" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>Aviso não cumprido</label><input id="trct_aviso_desc" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>Art. 480</label><input id="trct_480" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>Pensão alimentícia</label><input id="trct_pensao" type="text" inputmode="decimal"></div>
+            <div class="col-6"><label>Outros descontos</label><input id="trct_outdesc" type="text" inputmode="decimal"></div>
+          </div>
+        </div>
+
+        <div>
+          <h3 style="margin:0 0 8px 0">Resultados</h3>
+          <table>
+            <thead><tr><th>Item</th><th>Contabilidade</th><th>Calculadora</th><th>Diferença</th></tr></thead>
+            <tbody></tbody>
+            <tfoot>
+              <tr><td>Total Bruto</td><td id="cmpBrutoC">—</td><td id="cmpBrutoM">—</td><td id="cmpBrutoD">—</td></tr>
+              <tr><td>Descontos</td><td id="cmpDescC">—</td><td id="cmpDescM">—</td><td id="cmpDescD">—</td></tr>
+              <tr><td>Multa FGTS</td><td id="cmpFgtsC">—</td><td id="cmpFgtsM">—</td><td id="cmpFgtsD">—</td></tr>
+              <tr><td><strong>Total Líquido</strong></td><td id="cmpLiqC">—</td><td id="cmpLiqM">—</td><td id="cmpLiqD">—</td></tr>
+            </tfoot>
+          </table>
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="two">
-      <div>
-        <h3 style="margin:0 0 8px 0">Valores do TRCT (auto ou manual)</h3>
-
-        <div class="row">
-          <!-- RECEBIMENTOS / VERBAS RESCISÓRIAS -->
-          <div class="col-6"><label>Saldo de salário</label><input id="trct_saldo" type="text" inputmode="decimal"></div>
-          <div class="col-6"><label>Aviso prévio indenizado</label><input id="trct_aviso" type="text" inputmode="decimal"></div>
-
-          <div class="col-6"><label>13º proporcional</label><input id="trct_13" type="text" inputmode="decimal"></div>
-
-          <div class="col-6"><label>Férias vencidas</label><input id="trct_ferias_venc" type="text" inputmode="decimal"></div>
-          <div class="col-6"><label>1/3 férias vencidas</label><input id="trct_terco_venc" type="text" inputmode="decimal"></div>
-
-          <div class="col-6"><label>Férias proporcionais</label><input id="trct_ferias" type="text" inputmode="decimal"></div>
-          <div class="col-6"><label>1/3 férias proporcionais</label><input id="trct_terco" type="text" inputmode="decimal"></div>
-
-          <div class="col-6"><label>Outras verbas</label><input id="trct_outras" type="text" inputmode="decimal"></div>
-
-          <div class="col-6"><label>Multa FGTS (40% ou 20%)</label><input id="trct_multa_fgts" type="text" inputmode="decimal" placeholder="ex.: 40% sobre FGTS"></div>
-        </div>
-
-        <div class="row">
-          <!-- DESCONTOS / DEDUÇÕES -->
-          <div class="col-6"><label>INSS (desconto)</label><input id="trct_inss" type="text" inputmode="decimal"></div>
-          <div class="col-6"><label>IRRF (desconto)</label><input id="trct_ir" type="text" inputmode="decimal"></div>
-
-          <div class="col-6"><label>Faltas + DSR</label><input id="trct_faltas" type="text" inputmode="decimal"></div>
-          <div class="col-6"><label>Aviso não cumprido</label><input id="trct_aviso_desc" type="text" inputmode="decimal"></div>
-
-          <div class="col-6"><label>Art. 480</label><input id="trct_480" type="text" inputmode="decimal"></div>
-          <div class="col-6"><label>Pensão alimentícia</label><input id="trct_pensao" type="text" inputmode="decimal"></div>
-
-          <div class="col-6"><label>Outros descontos</label><input id="trct_outdesc" type="text" inputmode="decimal"></div>
-        </div>
-      </div>
-
-      <div>
-        <h3 style="margin:0 0 8px 0">Resultados</h3>
-        <table>
-          <thead>
-            <tr><th>Item</th><th>Contabilidade</th><th>Calculadora</th><th>Diferença</th></tr>
-          </thead>
-          <tbody></tbody>
-          <tfoot>
-            <tr><td>Total Bruto</td><td id="cmpBrutoC">—</td><td id="cmpBrutoM">—</td><td id="cmpBrutoD">—</td></tr>
-            <tr><td>Descontos</td><td id="cmpDescC">—</td><td id="cmpDescM">—</td><td id="cmpDescD">—</td></tr>
-            <tr><td>Multa FGTS</td><td id="cmpFgtsC">—</td><td id="cmpFgtsM">—</td><td id="cmpFgtsD">—</td></tr>
-            <tr><td><strong>Total Líquido</strong></td><td id="cmpLiqC">—</td><td id="cmpLiqM">—</td><td id="cmpLiqD">—</td></tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
-
+  <!-- ABA HISTÓRICO (permanece igual) -->
+  <div id="tab-hist" class="grid" style="display:none">
+    <!-- conteúdo gerido por history.js -->
   </div>
 </div>
+</body>
+</html>
